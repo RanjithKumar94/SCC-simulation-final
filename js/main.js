@@ -986,4 +986,8 @@ setInterval(function(){
         checkTerrain();
     }
 
+    if(typeof updateLiveSeparationPanel === "function"){
+        updateLiveSeparationPanel();
+    }
+
 },1000);
