@@ -174,9 +174,14 @@ document.getElementById("applyBtn").onclick = function(){
 
     if(spd !== ""){
 
+        const speedLockTouchdown =
+        (typeof getTouchdownPoint === "function")
+        ? getTouchdownPoint(activeRunwayDirection)
+        : CCB;
+
         const tdDistForSpeed = Math.sqrt(
-            (selectedAircraft.x - CCB.x)*(selectedAircraft.x - CCB.x) +
-            (selectedAircraft.y - CCB.y)*(selectedAircraft.y - CCB.y)
+            (selectedAircraft.x - speedLockTouchdown.x)*(selectedAircraft.x - speedLockTouchdown.x) +
+            (selectedAircraft.y - speedLockTouchdown.y)*(selectedAircraft.y - speedLockTouchdown.y)
         ) / PIXELS_PER_NM;
 
         if(tdDistForSpeed <= APPROACH_SPEED_LOCK_NM && !selectedAircraft.goAround){
@@ -696,14 +701,23 @@ if(ac.heading !== ac.targetHeading){
         }
 
         // ===============================
-// Distance to TOUCHDOWN, not just to CCB
-// (RWY 08/26 threshold isn't at CCB - see
-// getTouchdownCorrectionNM in radar.js)
+// Distance to TOUCHDOWN - now that touchdown
+// sits 1NM from CCB (toward the active
+// runway's own threshold), this must measure
+// against the real touchdown point, not CCB
+// directly, or the whole approach/speed/
+// descent schedule below drifts out of sync
+// with where the aircraft actually needs to be.
 // ===============================
 
+const touchdownPointNow =
+(typeof getTouchdownPoint === "function")
+? getTouchdownPoint(activeRunwayDirection)
+: CCB;
+
 const touchdownDistance = Math.sqrt(
-    (ac.x - CCB.x)*(ac.x - CCB.x) +
-    (ac.y - CCB.y)*(ac.y - CCB.y)
+    (ac.x - touchdownPointNow.x)*(ac.x - touchdownPointNow.x) +
+    (ac.y - touchdownPointNow.y)*(ac.y - touchdownPointNow.y)
 ) / PIXELS_PER_NM;
 
 // ===============================
@@ -989,9 +1003,14 @@ if(ac.approach){
         // Landing (based on distance to touchdown)
         // ===============================
 
+        const landingTouchdownPoint =
+        (typeof getTouchdownPoint === "function")
+        ? getTouchdownPoint(activeRunwayDirection)
+        : CCB;
+
         const landingTouchdownDistance = Math.sqrt(
-            (ac.x - CCB.x)*(ac.x - CCB.x) +
-            (ac.y - CCB.y)*(ac.y - CCB.y)
+            (ac.x - landingTouchdownPoint.x)*(ac.x - landingTouchdownPoint.x) +
+            (ac.y - landingTouchdownPoint.y)*(ac.y - landingTouchdownPoint.y)
         ) / PIXELS_PER_NM;
 
         if(landingTouchdownDistance <= 0.5 && ac.level <= 1){
