@@ -521,19 +521,35 @@ function getApproachBearing(direction){
 
 function getTouchdownPoint(direction){
 
-    // Per request: altitude reaches 0 at CCB, and the approach
-    // centreline/intercept geometry is anchored there too - the
-    // real 08/26 offset geometry is kept only for drawing the
-    // physical runway rectangle, not for these calculations.
+    // Touchdown sits 1NM from CCB, offset toward that runway's own
+    // threshold direction: RWY08 1NM west (toward the 08 threshold),
+    // RWY26 1NM east (toward the 26 threshold), and the same idea
+    // for RWY15/33 (335/155). Reuses the existing RUNWAYS bearings
+    // rather than a separate table, so they can't drift apart.
+    for(const pairKey in RUNWAYS){
+
+        const pair = RUNWAYS[pairKey];
+
+        if(pair.label1 === direction){
+            return pointFromXY(CCB, pair.bearing1, 1);
+        }
+
+        if(pair.label2 === direction){
+            return pointFromXY(CCB, pair.bearing2, 1);
+        }
+
+    }
+
+    // Fallback - unknown direction, default to CCB itself
     return {x: CCB.x, y: CCB.y};
 
 }
 
-// Distance correction is now always 0 (touchdown = CCB) -
-// kept as a function so existing call sites don't need changes.
+// Distance correction from the CCB-based touchdown offset above
+// (kept as a function so existing call sites don't need changes).
 function getTouchdownCorrectionNM(direction){
 
-    return 0;
+    return 1;
 
 }
 
@@ -706,8 +722,11 @@ function drawTrafficCircuit(){
 
     const rwy = getActiveRunway();
 
-    const end1 = bearingToXY(rwy.bearing1,12);
-    const end2 = bearingToXY(rwy.bearing2,12);
+    // Each end is 12NM out from that direction's own touchdown
+    // point (not CCB directly), so the box stays consistent with
+    // the 1NM CCB->touchdown offset used everywhere else.
+    const end1 = pointFromXY(getTouchdownPoint(rwy.label1), rwy.bearing1, 12);
+    const end2 = pointFromXY(getTouchdownPoint(rwy.label2), rwy.bearing2, 12);
 
     const dx = end2.x - end1.x;
     const dy = end2.y - end1.y;
