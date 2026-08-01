@@ -271,8 +271,8 @@ function getHoldFixPosition(name){
 
 const NDB_ROUTES = [
 
-    {name:"W-20", from:"PJ", track:160, length:30},
-    {name:"109 TR PJ", from:"PJ", track:109, length:30}
+    {name:"W-20", from:"PJ", track:160, length:31},
+    {name:"109 TR PJ", from:"PJ", track:109, length:44}
 
 ];
 
@@ -918,11 +918,11 @@ function drawNDBRoutes(){
 
 const VAD99 = [
 
-    {bearing:127, distance:15},   // A
-    {bearing:118, distance:20},   // B
-    {bearing:140, distance:26},   // C
-    {bearing:150, distance:22},   // D
-    {bearing:148, distance:15}    // E
+    {bearing:127, distance:16},   // A
+    {bearing:118, distance:21},   // B
+    {bearing:140, distance:27},   // C
+    {bearing:150, distance:23},   // D
+    {bearing:148, distance:16}    // E
 
 ];
 
