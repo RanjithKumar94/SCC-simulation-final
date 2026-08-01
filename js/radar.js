@@ -36,6 +36,58 @@ const AIRCRAFT_SELECTED_COLOR = "#FFFF00";
 const EMERGENCY_SQUAWKS = ["7500", "7600", "7700"];
 const EMERGENCY_BLINK_COLOR = "#FF0000";
 
+// ======================================
+// Emergency squawk alert tone - a short
+// two-beep chime played once whenever an
+// aircraft (arrival OR departure) is newly
+// set to 7500/7600/7700. Generated with
+// WebAudio so no external sound file is
+// needed. Safe to call from anywhere.
+// ======================================
+function playEmergencyAlertSound(){
+
+    try{
+
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+
+        if(!AudioCtx) return;
+
+        const actx = new AudioCtx();
+
+        const playBeep = (startDelaySec)=>{
+
+            const osc = actx.createOscillator();
+            const gain = actx.createGain();
+
+            osc.type = "square";
+            osc.frequency.value = 880;
+
+            const startAt = actx.currentTime + startDelaySec;
+
+            gain.gain.setValueAtTime(0.0001, startAt);
+            gain.gain.exponentialRampToValueAtTime(0.3, startAt + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.18);
+
+            osc.connect(gain);
+            gain.connect(actx.destination);
+
+            osc.start(startAt);
+            osc.stop(startAt + 0.2);
+
+        };
+
+        playBeep(0);
+        playBeep(0.25);
+
+    }
+    catch(e){
+
+        console.log("Emergency alert sound failed:", e);
+
+    }
+
+}
+
 // ATS Routes
 const ROUTES = [
 
@@ -182,7 +234,16 @@ function getNDB(name){
 
 const HOLD_FIXES = {
     "CCB": {inboundTrack:78, turn:"RIGHT", mha:30},
-    "NT":  {inboundTrack:90, turn:"LEFT",  mha:30},
+
+    // NT hold: inbound track 090 means the aircraft flies inbound
+    // TO the fix heading 090 (i.e. approaching from the west, so
+    // on the inbound leg it sits on a bearing of 270 FROM NT).
+    // Outbound leg is the reciprocal, heading 270. turn:"RIGHT"
+    // sweeps the entry/reversal turns through the north (270 ->
+    // 360/0 -> 090) instead of through the south, putting the
+    // pattern on the north side of the inbound/outbound track.
+    "NT":  {inboundTrack:90, turn:"RIGHT", mha:30},
+
     "PJ":  {inboundTrack:10, turn:"LEFT",  mha:65},
     "BR":  {inboundTrack:72, turn:"RIGHT", mha:65}
 };
@@ -1324,12 +1385,33 @@ function drawAircraft(){
 
 
         // =====================================
+        // Emergency squawk (7500/7600/7700) -
+        // blink the leader line AND the whole
+        // label red until the controller
+        // clicks/acknowledges it. Computed here
+        // (before the leader line is drawn) so
+        // both use the same on/off flicker.
+        // Applies to arrivals AND departures -
+        // both live in the same activeList.
+        // =====================================
+
+        const isEmergencySquawk =
+        ac.squawk && EMERGENCY_SQUAWKS.includes(ac.squawk);
+
+        const blinkOn = Math.floor(Date.now() / 400) % 2 === 0;
+
+        const emergencyBlinking =
+        isEmergencySquawk && !ac.emergencyAck && blinkOn;
+
+
+
+        // =====================================
         // Leader line (follows the label
         // even after it's been repelled)
         // =====================================
 
-        ctx.strokeStyle = acColor;
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = emergencyBlinking ? EMERGENCY_BLINK_COLOR : acColor;
+        ctx.lineWidth = emergencyBlinking ? 2 : 1;
 
 
         ctx.beginPath();
@@ -1367,19 +1449,10 @@ function drawAircraft(){
         }
 
 
-        // =====================================
-        // Emergency squawk (7500/7600/7700) -
-        // blink the whole label red until the
-        // controller clicks/acknowledges it
-        // =====================================
+        // Label uses the same emergencyBlinking flag computed
+        // above the leader line, so both flicker in sync.
 
-        const isEmergencySquawk =
-        ac.squawk && EMERGENCY_SQUAWKS.includes(ac.squawk);
-
-        const blinkOn = Math.floor(Date.now() / 400) % 2 === 0;
-
-        const labelColor =
-        (isEmergencySquawk && !ac.emergencyAck && blinkOn)
+        const labelColor = emergencyBlinking
         ? EMERGENCY_BLINK_COLOR
         : acColor;
 
