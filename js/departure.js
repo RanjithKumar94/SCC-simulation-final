@@ -517,12 +517,21 @@ if(ac.heading !== ac.targetHeading){
         // ===============================
         // Distance to TOUCHDOWN, not just to CCB
         // (RWY 08/26 threshold isn't at CCB - see
-        // getTouchdownCorrectionNM in radar.js)
+        // getTouchdownPoint in radar.js). Mirrors
+        // the same fix on the arrival side in
+        // main.js, so a departure that turns back
+        // to land gets the identical glidepath/
+        // landing behavior as an arrival would.
         // ===============================
 
+        const touchdownPointNow =
+        (typeof getTouchdownPoint === "function")
+        ? getTouchdownPoint(activeRunwayDirection)
+        : CCB;
+
         const touchdownDistance = Math.sqrt(
-            (ac.x - CCB.x)*(ac.x - CCB.x) +
-            (ac.y - CCB.y)*(ac.y - CCB.y)
+            (ac.x - touchdownPointNow.x)*(ac.x - touchdownPointNow.x) +
+            (ac.y - touchdownPointNow.y)*(ac.y - touchdownPointNow.y)
         ) / PIXELS_PER_NM;
 
         // ===============================
@@ -716,9 +725,14 @@ if(ac.heading !== ac.targetHeading){
         // Landing (based on distance to touchdown)
         // ===============================
 
+        const landingTouchdownPoint =
+        (typeof getTouchdownPoint === "function")
+        ? getTouchdownPoint(activeRunwayDirection)
+        : CCB;
+
         const landingTouchdownDistance = Math.sqrt(
-            (ac.x - CCB.x)*(ac.x - CCB.x) +
-            (ac.y - CCB.y)*(ac.y - CCB.y)
+            (ac.x - landingTouchdownPoint.x)*(ac.x - landingTouchdownPoint.x) +
+            (ac.y - landingTouchdownPoint.y)*(ac.y - landingTouchdownPoint.y)
         ) / PIXELS_PER_NM;
 
         if(landingTouchdownDistance <= 0.5 && ac.level <= 1){
