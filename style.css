@@ -77,6 +77,22 @@ body{
 }
 
 /* ===========================
+   Left Panel
+=========================== */
+
+#leftPanel{
+
+    width:300px;
+    background:#181818;
+    border-right:2px solid #008844;
+
+    padding:18px;
+
+    overflow-y:auto;
+
+}
+
+/* ===========================
    Right Panel
 =========================== */
 
@@ -301,6 +317,12 @@ select:focus{
 
 }
 
+#leftPanel{
+
+    width:260px;
+
+}
+
 }
 
 /* Mobile: stack radar above panel, full width, page scrolls */
@@ -326,6 +348,7 @@ body{
 
     width:100%;
     flex:none;
+    order:1;
 
 }
 
@@ -336,12 +359,23 @@ body{
 
 }
 
+#leftPanel{
+
+    width:100%;
+    border-right:none;
+    border-top:2px solid #008844;
+    overflow-y:visible;
+    order:2;
+
+}
+
 #controlPanel{
 
     width:100%;
     border-left:none;
     border-top:2px solid #008844;
     overflow-y:visible;
+    order:3;
 
 }
 
