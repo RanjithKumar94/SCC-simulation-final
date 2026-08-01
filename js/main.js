@@ -174,6 +174,10 @@ document.getElementById("applyBtn").onclick = function(){
 
     if(spd !== ""){
 
+        const isInbound =
+        (typeof isFlyingInboundToRunway === "function") &&
+        isFlyingInboundToRunway(selectedAircraft);
+
         const speedLockTouchdown =
         (typeof getTouchdownPoint === "function")
         ? getTouchdownPoint(activeRunwayDirection)
@@ -184,7 +188,7 @@ document.getElementById("applyBtn").onclick = function(){
             (selectedAircraft.y - speedLockTouchdown.y)*(selectedAircraft.y - speedLockTouchdown.y)
         ) / PIXELS_PER_NM;
 
-        if(tdDistForSpeed <= APPROACH_SPEED_LOCK_NM && !selectedAircraft.goAround){
+        if(isInbound && tdDistForSpeed <= APPROACH_SPEED_LOCK_NM && !selectedAircraft.goAround){
 
             alert("Speed is locked to the mandatory approach schedule inside " +
                   APPROACH_SPEED_LOCK_NM + "NM - go around to regain speed control.");
@@ -726,7 +730,11 @@ const touchdownDistance = Math.sqrt(
 
 const speedCat = getApproachSpeedCategory(ac.type);
 
-if(touchdownDistance <= APPROACH_SPEED_LOCK_NM && !ac.goAround){
+const flyingInbound =
+(typeof isFlyingInboundToRunway === "function") &&
+isFlyingInboundToRunway(ac);
+
+if(flyingInbound && touchdownDistance <= APPROACH_SPEED_LOCK_NM && !ac.goAround){
 
     // Mandatory schedule - overrides any controller clearance
     const sched = APPROACH_SPEED_SCHEDULE[speedCat];
