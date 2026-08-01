@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>ATC Radar Simulator</title>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<!-- ========================= -->
+<!-- Setup Screen -->
+<!-- ========================= -->
+
+<div id="setupScreen">
+
+    <div id="setupBox">
+
+        <h2>SIMULATOR SETUP</h2>
+
+        <label>Start Time (HH:MM)</label>
+        <input id="setupStartTime" type="text" value="05:00" placeholder="HH:MM">
+
+        <label style="margin-top:12px;">
+            <input id="setupVad99Active" type="checkbox" checked style="width:auto;height:auto;">
+            VAD-99 Active
+        </label>
+
+        <hr>
+
+        <h3>Aircraft</h3>
+
+        <div id="aircraftRowHeader" class="acRow acRowHeader">
+            <span>Callsign</span>
+            <span>Type</span>
+            <span>Entry Radial</span>
+            <span>Level</span>
+            <span>Target FL</span>
+            <span>Speed</span>
+            <span>ETA</span>
+            <span>Squawk</span>
+            <span></span>
+        </div>
+
+        <div id="aircraftRows"></div>
+
+        <button id="addAircraftRow" type="button">+ ADD AIRCRAFT</button>
+
+        <hr>
+
+        <button id="startSimulatorBtn" type="button">START SIMULATOR</button>
+
+    </div>
+
+</div>
+
+<div id="container" style="display:none;">
+
+    <!-- ========================= -->
+    <!-- Radar -->
+    <!-- ========================= -->
+
+    <div id="radarContainer">
+
+        <canvas id="radar" width="900" height="900"></canvas>
+
+    </div>
+
+    <!-- ========================= -->
+    <!-- Control Panel -->
+    <!-- ========================= -->
+
+    <div id="controlPanel">
+
+        <div id="clock">03:00:00</div>
+
+        <h2>ATC CONTROL PANEL</h2>
+
+        <label>Active Runway</label>
+
+        <select id="runwaySelect">
+            <option value="08">RWY 08</option>
+            <option value="26">RWY 26</option>
+            <option value="15">RWY 15</option>
+            <option value="33">RWY 33</option>
+        </select>
+
+        <hr>
+
+        <h3>Aircraft</h3>
+
+        <label>Callsign</label>
+        <input id="callsign" type="text">
+
+        <label>Squawk (blank = primary only)</label>
+        <input id="squawkInput" type="text" maxlength="4">
+
+        <label>Heading</label>
+        <input id="heading" type="number">
+
+        <label>Flight Level</label>
+        <input id="level" type="number">
+
+        <label>Speed (KT)</label>
+        <input id="speedInput" type="number">
+
+        <label>Climb Rate (ft/min)</label>
+        <input id="climbRateInput" type="number" placeholder="1500">
+
+        <label>Descent Rate (ft/min)</label>
+        <input id="descentRateInput" type="number" placeholder="1500">
+
+        <label>Turn Direction</label>
+
+        <div class="radioRow">
+
+            <label>
+                <input type="radio"
+                name="turnDir"
+                value="LEFT">
+                Left
+            </label>
+
+            <label>
+                <input type="radio"
+                name="turnDir"
+                value="RIGHT">
+                Right
+            </label>
+
+            <label>
+                <input type="radio"
+                name="turnDir"
+                value="SHORTEST"
+                checked>
+                Shortest
+            </label>
+
+        </div>
+
+        <div class="buttonRow">
+
+            <button id="applyBtn">
+                APPLY
+            </button>
+
+            <button id="rwy26Blip">
+                UNKNOWN
+            </button>
+
+        </div>
+
+        <hr>
+
+        <h3>Direct To Fix</h3>
+
+        <div class="buttonRow">
+            <button class="dctBtn" data-fix="ELBIS">DCT-ELBIS</button>
+            <button class="dctBtn" data-fix="ANKIT">DCT-ANKIT</button>
+        </div>
+
+        <div class="buttonRow">
+            <button class="dctBtn" data-fix="SULEM">DCT-SULEM</button>
+            <button class="dctBtn" data-fix="MANUR">DCT-MANUR</button>
+        </div>
+
+        <div class="buttonRow">
+            <button class="dctBtn" data-fix="BAMUL">DCT-BAMUL</button>
+            <button class="dctBtn" data-fix="MANDU">DCT-MANDU</button>
+        </div>
+
+        <div class="buttonRow">
+            <button class="dctBtn" data-fix="DUMAS">DCT-DUMAS</button>
+        </div>
+
+        <hr>
+
+        <h3>Holding</h3>
+
+        <div class="buttonRow">
+            <button class="holdBtn" data-fix="CCB">HOLD-CCB</button>
+            <button class="holdBtn" data-fix="NT">HOLD-NT</button>
+        </div>
+
+        <div class="buttonRow">
+            <button class="holdBtn" data-fix="PJ">HOLD-PJ</button>
+            <button class="holdBtn" data-fix="BR">HOLD-BR</button>
+        </div>
+
+        <hr>
+
+        <h3>Approach</h3>
+
+        <label>Localiser Intercept Heading</label>
+
+        <div class="buttonRow">
+
+            <button id="interceptHdg1">-</button>
+
+            <button id="interceptHdg2">-</button>
+
+        </div>
+
+        <button id="discontinueApproachBtn">
+            DISCONTINUE APPROACH
+        </button>
+
+        <hr>
+
+        <h3>Projected Track</h3>
+
+        <div class="buttonRow">
+
+            <button id="projOffBtn">OFF</button>
+            <button id="proj2Btn">2 MIN</button>
+
+        </div>
+
+        <div class="buttonRow">
+
+            <button id="proj5Btn">5 MIN</button>
+            <button id="proj10Btn">10 MIN</button>
+
+        </div>
+
+        <div class="buttonRow">
+
+            <button id="rblBtn">
+                DRAW RBL
+            </button>
+
+            <button id="clearRblBtn">
+                CLEAR RBL
+            </button>
+
+        </div>
+
+        <p id="rblStatus"></p>
+
+        <div class="buttonRow">
+
+            <button id="pauseBtn">
+                PAUSE
+            </button>
+
+            <button id="resumeBtn">
+                RESUME
+            </button>
+
+        </div>
+
+        <hr>
+
+        <h3>Departure</h3>
+
+        <label>Callsign</label>
+        <input id="depcallsign" type="text">
+
+        <label>Level</label>
+        <input id="deplevel" type="number">
+
+        <label>Departure Runway</label>
+
+        <select id="depRunway">
+
+            <option value="08">RWY 08</option>
+            <option value="26">RWY 26</option>
+            <option value="15">RWY 15</option>
+            <option value="33">RWY 33</option>
+
+        </select>
+
+        <button id="createDeparture">
+
+            CREATE DEPARTURE
+
+        </button>
+
+        <hr>
+
+        <h3>Status</h3>
+
+        <label>Radar Range</label>
+
+        <select id="rangeSelect">
+            <option value="60" selected>60 NM</option>
+            <option value="30">30 NM</option>
+        </select>
+
+        <p id="trafficCount">
+            Traffic : 0
+        </p>
+
+        <hr>
+
+        <h3>Exercise Report</h3>
+
+        <button id="generateReportBtn" type="button">
+            GENERATE REPORT
+        </button>
+
+    </div>
+
+</div>
+
+<script src="js/aircraft.js"></script>
+<script src="js/departure.js"></script>
+<script src="js/main.js"></script>
+<script src="js/radar.js"></script>
+<script src="js/setup.js"></script>
+<script src="js/report.js"></script>
+
+</body>
+
+</html>
