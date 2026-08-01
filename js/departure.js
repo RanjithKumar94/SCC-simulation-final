@@ -399,6 +399,22 @@ if(ac.heading !== ac.targetHeading){
                         ac.holdOutboundTimer = 0;
 
                     }
+                    else{
+
+                        // Home continuously on the fix rather than flying a
+                        // fixed heading - a fixed heading only closes the
+                        // loop if the outbound turn happened to line up
+                        // perfectly, otherwise the aircraft just flies past
+                        // the fix and never re-triggers another lap.
+                        let bearingToHoldFix =
+                        (Math.atan2(hdy, hdx) * 180 / Math.PI) + 90;
+
+                        bearingToHoldFix = (bearingToHoldFix + 360) % 360;
+
+                        ac.targetHeading = Math.round(bearingToHoldFix) % 360;
+                        ac.turnDirection = "SHORTEST";
+
+                    }
 
                 }
 
