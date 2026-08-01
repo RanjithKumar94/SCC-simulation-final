@@ -150,12 +150,33 @@ document.getElementById("applyBtn").onclick = function(){
     if(squawkEl){
 
         const newSquawk = squawkEl.value.trim();
+        const prevSquawk = selectedAircraft.squawk;
+
         selectedAircraft.squawk = newSquawk;
 
-        // Emergency squawk set - start the label blinking
-        // red until the controller clicks/acknowledges it
-        if(["7500","7600","7700"].includes(newSquawk)){
+        // Emergency squawk newly set (7500/7600/7700) - start the
+        // label AND leader line blinking red, plus play the alert
+        // tone, until the controller clicks/acknowledges it. Only
+        // do this when the code is actually CHANGING to an
+        // emergency squawk - otherwise pressing APPLY again for an
+        // unrelated heading/level/speed change while an already-
+        // acknowledged emergency squawk is still sitting in this
+        // field would restart the blink/alarm every single time.
+        // Works the same for arrivals and departures - both are
+        // ordinary selectedAircraft references here.
+        const isNewEmergency =
+        typeof EMERGENCY_SQUAWKS !== "undefined"
+            ? EMERGENCY_SQUAWKS.includes(newSquawk)
+            : ["7500","7600","7700"].includes(newSquawk);
+
+        if(isNewEmergency && newSquawk !== prevSquawk){
+
             selectedAircraft.emergencyAck = false;
+
+            if(typeof playEmergencyAlertSound === "function"){
+                playEmergencyAlertSound();
+            }
+
         }
 
     }
