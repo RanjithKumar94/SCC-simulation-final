@@ -469,6 +469,46 @@ if(ac.heading !== ac.targetHeading){
         }
 
         // ===============================
+        // Approach speed control - a departure
+        // is exempt UNLESS it's actually turned
+        // back and is flying inbound toward the
+        // active runway (e.g. after a hold or
+        // being vectored back in).
+        // ===============================
+
+        if(typeof getTouchdownPoint === "function" &&
+           typeof isFlyingInboundToRunway === "function" &&
+           typeof APPROACH_SPEED_LOCK_NM !== "undefined"){
+
+            const depTouchdown = getTouchdownPoint(activeRunwayDirection);
+
+            const depTouchdownDistance = Math.sqrt(
+                (ac.x - depTouchdown.x)*(ac.x - depTouchdown.x) +
+                (ac.y - depTouchdown.y)*(ac.y - depTouchdown.y)
+            ) / PIXELS_PER_NM;
+
+            const depFlyingInbound = isFlyingInboundToRunway(ac);
+
+            if(depFlyingInbound && depTouchdownDistance <= APPROACH_SPEED_LOCK_NM && !ac.goAround){
+
+                const depSpeedCat = getApproachSpeedCategory(ac.type);
+                const depSched = APPROACH_SPEED_SCHEDULE[depSpeedCat];
+
+                if(depTouchdownDistance <= 5){
+                    ac.targetSpeed = depSched.last5;
+                }
+                else if(depTouchdownDistance <= 8.5){
+                    ac.targetSpeed = depSched.at8_5;
+                }
+                else{
+                    ac.targetSpeed = depSched.at9;
+                }
+
+            }
+
+        }
+
+        // ===============================
         // Speed transition toward target speed
         // ===============================
 
