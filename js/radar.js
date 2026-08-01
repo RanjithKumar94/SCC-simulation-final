@@ -150,7 +150,7 @@ const NDBS = [
 
     {name:"PJ", fullName:"PANKAJ", bearing:190, distance:30},   // sits on the B425 track
     {name:"BR", fullName:"BINSAR", bearing:252, distance:35},
-    {name:"NT", fullName:"NIPTAN", bearing:20,  distance:15}
+    {name:"NT", fullName:"NIPTAN", bearing:30,  distance:19}
 
 ];
 
@@ -787,15 +787,26 @@ function drawNDBs(){
 
     NDBS.forEach(ndb=>{
 
-        // Diamond marker (to distinguish from the CCB VOR circle)
+        // Dot-in-circle marker (standard NDB symbol, to
+        // distinguish from the CCB VOR circle)
 
         ctx.save();
 
         ctx.translate(ndb.x, ndb.y);
-        ctx.rotate(Math.PI / 4);
 
+        ctx.strokeStyle = "#FFAA00";
+        ctx.lineWidth = 1.5;
+
+        // Outer circle
+        ctx.beginPath();
+        ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Center dot
         ctx.fillStyle = "#FFAA00";
-        ctx.fillRect(-4, -4, 8, 8);
+        ctx.beginPath();
+        ctx.arc(0, 0, 2, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.restore();
 
