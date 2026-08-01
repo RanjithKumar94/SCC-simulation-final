@@ -63,6 +63,124 @@
 <div id="container" style="display:none;">
 
     <!-- ========================= -->
+    <!-- Left Panel -->
+    <!-- ========================= -->
+
+    <div id="leftPanel">
+
+        <h2>ROUTING &amp; TRAFFIC</h2>
+
+        <h3>Direct To Fix</h3>
+
+        <div class="buttonRow">
+            <button class="dctBtn" data-fix="ELBIS">DCT-ELBIS</button>
+            <button class="dctBtn" data-fix="ANKIT">DCT-ANKIT</button>
+        </div>
+
+        <div class="buttonRow">
+            <button class="dctBtn" data-fix="SULEM">DCT-SULEM</button>
+            <button class="dctBtn" data-fix="MANUR">DCT-MANUR</button>
+        </div>
+
+        <div class="buttonRow">
+            <button class="dctBtn" data-fix="BAMUL">DCT-BAMUL</button>
+            <button class="dctBtn" data-fix="MANDU">DCT-MANDU</button>
+        </div>
+
+        <div class="buttonRow">
+            <button class="dctBtn" data-fix="DUMAS">DCT-DUMAS</button>
+        </div>
+
+        <hr>
+
+        <h3>Holding</h3>
+
+        <div class="buttonRow">
+            <button class="holdBtn" data-fix="CCB">HOLD-CCB</button>
+            <button class="holdBtn" data-fix="NT">HOLD-NT</button>
+        </div>
+
+        <div class="buttonRow">
+            <button class="holdBtn" data-fix="PJ">HOLD-PJ</button>
+            <button class="holdBtn" data-fix="BR">HOLD-BR</button>
+        </div>
+
+        <hr>
+
+        <h3>Projected Track</h3>
+
+        <div class="buttonRow">
+
+            <button id="projOffBtn">OFF</button>
+            <button id="proj2Btn">2 MIN</button>
+
+        </div>
+
+        <div class="buttonRow">
+
+            <button id="proj5Btn">5 MIN</button>
+            <button id="proj10Btn">10 MIN</button>
+
+        </div>
+
+        <hr>
+
+        <h3>Range Bearing Line</h3>
+
+        <div class="buttonRow">
+
+            <button id="rblBtn">
+                DRAW RBL
+            </button>
+
+            <button id="clearRblBtn">
+                CLEAR RBL
+            </button>
+
+        </div>
+
+        <p id="rblStatus"></p>
+
+        <hr>
+
+        <h3>Departure</h3>
+
+        <label>Callsign</label>
+        <input id="depcallsign" type="text">
+
+        <label>Type</label>
+
+        <select id="depType">
+            <option value="A320">A320</option>
+            <option value="B738">B738</option>
+            <option value="B747">B747</option>
+            <option value="ATR72">ATR72</option>
+            <option value="DO228">DO228</option>
+        </select>
+
+        <label>Level</label>
+        <input id="deplevel" type="number">
+
+        <label>Departure Runway</label>
+
+        <select id="depRunway">
+
+            <option value="08">RWY 08</option>
+            <option value="26">RWY 26</option>
+            <option value="15">RWY 15</option>
+            <option value="33">RWY 33</option>
+
+        </select>
+
+        <button id="createDeparture">
+
+            CREATE DEPARTURE
+
+        </button>
+
+    </div>
+
+    <!-- ========================= -->
     <!-- Radar -->
     <!-- ========================= -->
 
@@ -158,43 +276,6 @@
 
         <hr>
 
-        <h3>Direct To Fix</h3>
-
-        <div class="buttonRow">
-            <button class="dctBtn" data-fix="ELBIS">DCT-ELBIS</button>
-            <button class="dctBtn" data-fix="ANKIT">DCT-ANKIT</button>
-        </div>
-
-        <div class="buttonRow">
-            <button class="dctBtn" data-fix="SULEM">DCT-SULEM</button>
-            <button class="dctBtn" data-fix="MANUR">DCT-MANUR</button>
-        </div>
-
-        <div class="buttonRow">
-            <button class="dctBtn" data-fix="BAMUL">DCT-BAMUL</button>
-            <button class="dctBtn" data-fix="MANDU">DCT-MANDU</button>
-        </div>
-
-        <div class="buttonRow">
-            <button class="dctBtn" data-fix="DUMAS">DCT-DUMAS</button>
-        </div>
-
-        <hr>
-
-        <h3>Holding</h3>
-
-        <div class="buttonRow">
-            <button class="holdBtn" data-fix="CCB">HOLD-CCB</button>
-            <button class="holdBtn" data-fix="NT">HOLD-NT</button>
-        </div>
-
-        <div class="buttonRow">
-            <button class="holdBtn" data-fix="PJ">HOLD-PJ</button>
-            <button class="holdBtn" data-fix="BR">HOLD-BR</button>
-        </div>
-
-        <hr>
-
         <h3>Approach</h3>
 
         <label>Localiser Intercept Heading</label>
@@ -213,36 +294,6 @@
 
         <hr>
 
-        <h3>Projected Track</h3>
-
-        <div class="buttonRow">
-
-            <button id="projOffBtn">OFF</button>
-            <button id="proj2Btn">2 MIN</button>
-
-        </div>
-
-        <div class="buttonRow">
-
-            <button id="proj5Btn">5 MIN</button>
-            <button id="proj10Btn">10 MIN</button>
-
-        </div>
-
-        <div class="buttonRow">
-
-            <button id="rblBtn">
-                DRAW RBL
-            </button>
-
-            <button id="clearRblBtn">
-                CLEAR RBL
-            </button>
-
-        </div>
-
-        <p id="rblStatus"></p>
-
         <div class="buttonRow">
 
             <button id="pauseBtn">
@@ -254,33 +305,6 @@
             </button>
 
         </div>
-
-        <hr>
-
-        <h3>Departure</h3>
-
-        <label>Callsign</label>
-        <input id="depcallsign" type="text">
-
-        <label>Level</label>
-        <input id="deplevel" type="number">
-
-        <label>Departure Runway</label>
-
-        <select id="depRunway">
-
-            <option value="08">RWY 08</option>
-            <option value="26">RWY 26</option>
-            <option value="15">RWY 15</option>
-            <option value="33">RWY 33</option>
-
-        </select>
-
-        <button id="createDeparture">
-
-            CREATE DEPARTURE
-
-        </button>
 
         <hr>
 
@@ -297,7 +321,7 @@
             Traffic : 0
         </p>
 
-        
+        <hr>
 
         <h3>Exercise Report</h3>
 
