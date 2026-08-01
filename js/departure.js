@@ -511,17 +511,147 @@ if(ac.heading !== ac.targetHeading){
 
 
 
-        // Climb
+        // ===============================
+        // Distance to TOUCHDOWN, not just to CCB
+        // (RWY 08/26 threshold isn't at CCB - see
+        // getTouchdownCorrectionNM in radar.js)
+        // ===============================
 
-        if(ac.level < ac.targetLevel){
+        const touchdownDistance = Math.sqrt(
+            (ac.x - CCB.x)*(ac.x - CCB.x) +
+            (ac.y - CCB.y)*(ac.y - CCB.y)
+        ) / PIXELS_PER_NM;
+
+        // ===============================
+        // Localiser capture: if cleared to
+        // intercept (e.g. an emergency return
+        // to land), turn onto final course once
+        // the centreline is crossed
+        // ===============================
+
+        if(ac.locIntercept && !ac.established){
+
+            if(typeof getPerpDistanceToCentrelineNM === "function"){
+
+                const perpNM = getPerpDistanceToCentrelineNM(ac);
+
+                if(perpNM <= 3){
+
+                    ac.established = true;
+                    ac.locIntercept = false;
+
+                }
+
+            }
+
+        }
+
+        // While established but not yet exactly on the centreline,
+        // steer toward a point further down the line so the aircraft
+        // actually converges onto it instead of flying parallel
+        // beside it.
+        if(ac.established){
+
+            const touchdown = getTouchdownPoint(activeRunwayDirection);
+            const inboundHeading = RWY_LANDING_HEADING[activeRunwayDirection];
+            const inboundAngle = (inboundHeading - 90) * Math.PI / 180;
+            const inboundDir = {x:Math.cos(inboundAngle), y:Math.sin(inboundAngle)};
+            const perpDir = {x:-inboundDir.y, y:inboundDir.x};
+
+            const dx = ac.x - touchdown.x;
+            const dy = ac.y - touchdown.y;
+
+            const alongPx = dx*inboundDir.x + dy*inboundDir.y;
+            const perpPx = dx*perpDir.x + dy*perpDir.y;
+            const perpNM = Math.abs(perpPx) / PIXELS_PER_NM;
+
+            if(perpNM <= 0.05){
+
+                // Close enough - hold the exact final course
+                ac.targetHeading = inboundHeading;
+
+            }
+            else{
+
+                // Aim at a point on the centreline, 3NM closer to
+                // touchdown than our current along-track position
+                // (but never past touchdown itself)
+                const leadPx = 3 * PIXELS_PER_NM;
+                let aimAlongPx = alongPx + leadPx;
+
+                if(aimAlongPx > 0) aimAlongPx = 0;
+
+                const aimX = touchdown.x + inboundDir.x*aimAlongPx;
+                const aimY = touchdown.y + inboundDir.y*aimAlongPx;
+
+                let bearingToAim =
+                (Math.atan2(aimY - ac.y, aimX - ac.x) * 180 / Math.PI) + 90;
+
+                bearingToAim = (bearingToAim + 360) % 360;
+
+                ac.targetHeading = Math.round(bearingToAim);
+                ac.turnDirection = "SHORTEST";
+
+            }
+
+        }
+
+        // Once established, switch to the final-approach descent
+        // profile as soon as we're in range.
+        if(ac.established && touchdownDistance <= 8.5 && ac.targetLevel !== 0){
+
+            ac.targetLevel = 0;
+
+        }
+
+        // ===============================
+        // Arrival phase at 8.5 NM (from touchdown)
+        // ===============================
+
+        if(touchdownDistance <= 8.5){
+
+            ac.arrivalPhase = true;
+
+        }
+
+        // ===============================
+        // Controller selected climb/descent
+        // (skipped once on the distance-based
+        // final approach profile - see below)
+        // ===============================
+
+        if(ac.approach){
+
+            // Final approach profile owns the level entirely from here
+
+        }
+        else if(ac.level > ac.targetLevel){
+
+            const descentFpm = ac.descentRateFpm || 1500;
+            const descentRate = descentFpm / 100 / 60;   // FL/sec
+
+            ac.level -= descentRate;
+
+            ac.verticalSpeed = -descentFpm;
+
+
+            if(ac.level <= ac.targetLevel){
+
+                ac.level = ac.targetLevel;
+
+                ac.verticalSpeed = 0;
+
+            }
+
+        }
+        else if(ac.level < ac.targetLevel){
 
             const climbFpm = ac.climbRateFpm || 1500;
+            const climbRate = climbFpm / 100 / 60;   // FL/sec
 
-            ac.level += climbFpm / 100 / 60;
-
+            ac.level += climbRate;
 
             ac.verticalSpeed = climbFpm;
-
 
 
             if(ac.level >= ac.targetLevel){
@@ -529,6 +659,93 @@ if(ac.heading !== ac.targetHeading){
                 ac.level = ac.targetLevel;
 
                 ac.verticalSpeed = 0;
+
+            }
+
+        }
+        else{
+
+            ac.verticalSpeed = 0;
+
+        }
+
+        // =====================================
+        // Final Approach Descent
+        // =====================================
+
+        if(touchdownDistance <= 8.5 && ac.targetLevel === 0){
+
+            ac.approach = true;
+
+        }
+
+        if(ac.approach){
+
+            // Descend based on distance remaining TO TOUCHDOWN
+
+            let requiredLevel = touchdownDistance * 2.35;
+
+            if(requiredLevel < 0)
+                requiredLevel = 0;
+
+
+            if(ac.level > requiredLevel){
+
+                const descentFpm = ac.descentRateFpm || 1500;
+                const descentRate = descentFpm / 100 / 60;   // FL/sec
+
+                ac.level -= descentRate;
+
+                ac.verticalSpeed = -descentFpm;
+
+
+                if(ac.level <= requiredLevel){
+
+                    ac.level = requiredLevel;
+
+                }
+
+            }
+
+        }
+
+        // ===============================
+        // Landing (based on distance to touchdown)
+        // ===============================
+
+        const landingTouchdownDistance = Math.sqrt(
+            (ac.x - CCB.x)*(ac.x - CCB.x) +
+            (ac.y - CCB.y)*(ac.y - CCB.y)
+        ) / PIXELS_PER_NM;
+
+        if(landingTouchdownDistance <= 0.5 && ac.level <= 1){
+
+            ac.landed = true;
+
+            if(!ac.reportedLanding && typeof logLanding === "function"){
+                ac.reportedLanding = true;
+                logLanding(ac);
+            }
+
+        }
+
+        // ===============================
+        // Remove after 3 seconds
+        // ===============================
+
+        if(ac.landed){
+
+            ac.removeTimer =
+            (ac.removeTimer || 0) + 1;
+
+
+            if(ac.removeTimer >= 3){
+
+                ac.active = false;
+
+                console.log(
+                    ac.callsign + " removed"
+                );
 
             }
 
