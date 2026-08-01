@@ -91,41 +91,6 @@ function entryOffset(type) {
 
 }
 
-// ======================================
-// Approach speed control
-// - Below 10,000ft: soft default (250/220kt)
-//   that a controller speed clearance overrides.
-// - Inside 9NM from touchdown: hard mandatory
-//   schedule that overrides ANY clearance,
-//   unless the aircraft is going around.
-// ======================================
-
-function getApproachSpeedCategory(type){
-
-    if(type === "B747") return "B747";
-    if(type === "A320" || type === "B738" || type === "B737") return "NARROWBODY";
-    return "OTHER";
-
-}
-
-const APPROACH_SPEED_SCHEDULE = {
-    "B747":       {at9:220, at8_5:190, last5:180},
-    "NARROWBODY": {at9:210, at8_5:180, last5:170},
-    "OTHER":      {at9:180, at8_5:170, last5:150}
-};
-
-const BELOW_10000_DEFAULT_SPEED = {
-    "B747":       250,
-    "NARROWBODY": 250,
-    "OTHER":      220
-};
-
-// Distance (NM from touchdown) inside which the approach speed
-// schedule is fully mandatory - matches where the schedule itself
-// starts (9NM), so there's no gap where a controller could set a
-// speed that then gets silently overwritten a second later.
-const APPROACH_SPEED_LOCK_NM = 9;
-
 document.getElementById("applyBtn").onclick = function(){
 
     if(selectedAircraft == null){
@@ -172,36 +137,8 @@ document.getElementById("applyBtn").onclick = function(){
     if(lvl !== "")
         selectedAircraft.targetLevel = parseInt(lvl);
 
-    if(spd !== ""){
-
-        const isInbound =
-        (typeof isFlyingInboundToRunway === "function") &&
-        isFlyingInboundToRunway(selectedAircraft);
-
-        const speedLockTouchdown =
-        (typeof getTouchdownPoint === "function")
-        ? getTouchdownPoint(activeRunwayDirection)
-        : CCB;
-
-        const tdDistForSpeed = Math.sqrt(
-            (selectedAircraft.x - speedLockTouchdown.x)*(selectedAircraft.x - speedLockTouchdown.x) +
-            (selectedAircraft.y - speedLockTouchdown.y)*(selectedAircraft.y - speedLockTouchdown.y)
-        ) / PIXELS_PER_NM;
-
-        if(isInbound && tdDistForSpeed <= APPROACH_SPEED_LOCK_NM && !selectedAircraft.goAround){
-
-            alert("Speed is locked to the mandatory approach schedule inside " +
-                  APPROACH_SPEED_LOCK_NM + "NM - go around to regain speed control.");
-
-        }
-        else{
-
-            selectedAircraft.targetSpeed = parseInt(spd);
-            selectedAircraft.speedClearance = parseInt(spd);
-
-        }
-
-    }
+    if(spd !== "")
+        selectedAircraft.targetSpeed = parseInt(spd);
 
     if(climbRate !== "")
         selectedAircraft.climbRateFpm = parseInt(climbRate);
@@ -723,39 +660,6 @@ const touchdownDistance = Math.sqrt(
     (ac.x - touchdownPointNow.x)*(ac.x - touchdownPointNow.x) +
     (ac.y - touchdownPointNow.y)*(ac.y - touchdownPointNow.y)
 ) / PIXELS_PER_NM;
-
-// ===============================
-// Approach speed control
-// ===============================
-
-const speedCat = getApproachSpeedCategory(ac.type);
-
-const flyingInbound =
-(typeof isFlyingInboundToRunway === "function") &&
-isFlyingInboundToRunway(ac);
-
-if(flyingInbound && touchdownDistance <= APPROACH_SPEED_LOCK_NM && !ac.goAround){
-
-    // Mandatory schedule - overrides any controller clearance
-    const sched = APPROACH_SPEED_SCHEDULE[speedCat];
-
-    if(touchdownDistance <= 5){
-        ac.targetSpeed = sched.last5;
-    }
-    else if(touchdownDistance <= 8.5){
-        ac.targetSpeed = sched.at8_5;
-    }
-    else{
-        ac.targetSpeed = sched.at9;
-    }
-
-}
-else if(ac.level < 100 && !ac.speedClearance){
-
-    // Below 10,000ft, no controller clearance on file - default applies
-    ac.targetSpeed = BELOW_10000_DEFAULT_SPEED[speedCat];
-
-}
 
 // Published route: once via DUMAS on track 320,
 // automatically establish R088 inbound at 20NM from
