@@ -497,6 +497,29 @@ const INTERCEPT_HEADINGS = {
 // Perpendicular distance (NM) from an aircraft to the extended
 // approach centreline of the active runway - used to detect
 // localiser capture.
+// Is this aircraft actually flying INBOUND toward the active
+// runway's touchdown point right now? Checked by heading, not
+// by whether it's an "arrival" or "departure" object - a
+// departure that's turned back toward the field counts too,
+// and a departure climbing out on the runway heading (which
+// can numerically match the inbound course) does not.
+function isFlyingInboundToRunway(ac){
+
+    const touchdown = getTouchdownPoint(activeRunwayDirection);
+
+    const toTouchdownX = touchdown.x - ac.x;
+    const toTouchdownY = touchdown.y - ac.y;
+
+    const headingAngle = (ac.heading - 90) * Math.PI / 180;
+    const headingDirX = Math.cos(headingAngle);
+    const headingDirY = Math.sin(headingAngle);
+
+    const dot = toTouchdownX*headingDirX + toTouchdownY*headingDirY;
+
+    return dot > 0;   // heading generally points toward touchdown
+
+}
+
 function getPerpDistanceToCentrelineNM(ac){
 
     const touchdown = getTouchdownPoint(activeRunwayDirection);
