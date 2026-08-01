@@ -242,7 +242,20 @@ function checkTerrain(){
 
 // ======================================
 // Called once per landing (hooked from
-// main.js when ac.landed first goes true)
+// main.js/departure.js when ac.landed
+// first goes true)
+// ------------------------------------
+// Every time an aircraft touches down,
+// this looks at whichever OTHER aircraft
+// is currently closest to touchdown (still
+// airborne, inbound to the active runway)
+// and records exactly how far out it is
+// RIGHT NOW - not an after-the-fact
+// estimate from two landing timestamps.
+// Runs on every single landing, so the
+// spacing log keeps building for the
+// whole exercise, one entry per landing
+// that actually had traffic behind it.
 // ======================================
 function logLanding(ac){
 
@@ -254,46 +267,81 @@ function logLanding(ac){
         speed: ac.speed
     });
 
-    if(landingLog.length >= 2){
-
-        const prev = landingLog[landingLog.length - 2];
-        const curr = landingLog[landingLog.length - 1];
-
-        const gapSec = curr.timeSec - prev.timeSec;
-
-        // Estimated in-trail spacing at the moment the leading
-        // aircraft landed, based on the trailing aircraft's own
-        // approach groundspeed over the gap (holds fairly steady
-        // on short final in this sim).
-        const estSpacingNM = (curr.speed / 3600) * gapSec;
-
-        let rating;
-
-        if(estSpacingNM < 8){
-            rating = "CAUTION - below 8 NM";
-        }
-        else if(estSpacingNM <= 10){
-            rating = "Very good";
-        }
-        else if(estSpacingNM <= 12){
-            rating = "Good (can improve)";
-        }
-        else if(estSpacingNM <= 14){
-            rating = "Satisfactory";
-        }
-        else{
-            rating = "Needs attention";
-        }
-
-        spacingLog.push({
-            leading: prev.callsign,
-            trailing: curr.callsign,
-            gapSec: gapSec,
-            estSpacingNM: estSpacingNM,
-            rating: rating
-        });
-
+    if(typeof getTouchdownPoint !== "function" ||
+       typeof activeRunwayDirection === "undefined"){
+        return;
     }
+
+    const touchdownPoint = getTouchdownPoint(activeRunwayDirection);
+
+    const candidates =
+    [...(typeof aircraft !== "undefined" ? aircraft : []),
+     ...(typeof departures !== "undefined" ? departures : [])]
+    .filter(other =>
+        other !== ac &&
+        other.active &&
+        !other.landed &&
+        (typeof isFlyingInboundToRunway !== "function" || isFlyingInboundToRunway(other))
+    );
+
+    if(candidates.length === 0) return;
+
+    // The next aircraft in the sequence is whichever one is
+    // physically closest to touchdown right now - not necessarily
+    // the next one that was cleared, just the next one that will
+    // actually arrive.
+    let trailing = null;
+    let trailingDistNM = Infinity;
+
+    candidates.forEach(other=>{
+
+        const dx = other.x - touchdownPoint.x;
+        const dy = other.y - touchdownPoint.y;
+        const distNM = Math.sqrt(dx*dx + dy*dy) / PIXELS_PER_NM;
+
+        if(distNM < trailingDistNM){
+            trailingDistNM = distNM;
+            trailing = other;
+        }
+
+    });
+
+    if(!trailing) return;
+
+    let rating;
+
+    if(trailingDistNM < 8){
+        rating = "CAUTION - below 8 NM";
+    }
+    else if(trailingDistNM <= 10){
+        rating = "Very good";
+    }
+    else if(trailingDistNM <= 12){
+        rating = "Good (can improve)";
+    }
+    else if(trailingDistNM <= 14){
+        rating = "Satisfactory";
+    }
+    else{
+        rating = "Needs attention";
+    }
+
+    // Estimated remaining time for the trailing aircraft to reach
+    // touchdown at its current groundspeed - shown in place of a
+    // "time gap" since there's no second landing to measure from.
+    const gapSec =
+    trailing.speed > 0
+    ? Math.round((trailingDistNM / trailing.speed) * 3600)
+    : null;
+
+    spacingLog.push({
+        leading: ac.callsign,
+        trailing: trailing.callsign,
+        timeSec: now,
+        gapSec: gapSec,
+        estSpacingNM: trailingDistNM,
+        rating: rating
+    });
 
 }
 
@@ -451,8 +499,8 @@ function generateReport(){
     }
     else{
 
-        html += "<table><tr><th>Leading A/C</th><th>Trailing A/C</th><th>Time Gap</th>" +
-                "<th>Est. Spacing (NM)</th><th>Rating</th></tr>";
+        html += "<table><tr><th>Leading A/C</th><th>Trailing A/C</th><th>Trailing ETA</th>" +
+                "<th>Distance at Landing (NM)</th><th>Rating</th></tr>";
 
         spacingLog.forEach(s=>{
 
@@ -460,11 +508,19 @@ function generateReport(){
                 ? "bad"
                 : (s.rating === "Needs attention" ? "warn" : "good");
 
-            const mm = Math.floor(s.gapSec / 60);
-            const ss = s.gapSec % 60;
+            let etaStr;
+
+            if(s.gapSec === null || s.gapSec === undefined){
+                etaStr = "-";
+            }
+            else{
+                const mm = Math.floor(s.gapSec / 60);
+                const ss = s.gapSec % 60;
+                etaStr = mm + "m " + ss + "s";
+            }
 
             html += "<tr class='" + cls + "'><td>" + s.leading + "</td><td>" +
-                    s.trailing + "</td><td>" + mm + "m " + ss + "s</td><td>" +
+                    s.trailing + "</td><td>" + etaStr + "</td><td>" +
                     s.estSpacingNM.toFixed(1) + "</td><td>" + s.rating + "</td></tr>";
 
         });
@@ -473,8 +529,9 @@ function generateReport(){
 
     }
 
-    html += "<p class='note'>Arrival spacing is estimated from the time gap between " +
-            "landings and the trailing aircraft's own approach groundspeed at touchdown.</p>";
+    html += "<p class='note'>Arrival spacing is the trailing aircraft's actual distance " +
+            "from touchdown at the moment the leading aircraft lands, with its ETA to " +
+            "touchdown estimated from its groundspeed at that same moment.</p>";
 
     html += "</body></html>";
 
