@@ -1681,6 +1681,7 @@ window.onload = function(){
         selectedAircraft.directToFix = null;
         selectedAircraft.established = false;
         selectedAircraft.viaDumasRoute = false;
+        selectedAircraft.goAround = false;
 
     }
 
@@ -1718,6 +1719,7 @@ window.onload = function(){
             selectedAircraft.arrivalPhase = false;
             selectedAircraft.viaDumasRoute = false;
             selectedAircraft.directToFix = null;
+            selectedAircraft.goAround = true;
 
             // Go around: climb, keep current heading
             selectedAircraft.targetHeading = Math.round(selectedAircraft.heading) % 360;
