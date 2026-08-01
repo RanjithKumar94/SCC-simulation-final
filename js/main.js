@@ -112,11 +112,25 @@ document.getElementById("applyBtn").onclick = function(){
     const squawkEl = document.getElementById("squawkInput");
 
     if(hdg !== ""){
-        selectedAircraft.targetHeading = parseInt(hdg) % 360;
-        selectedAircraft.directToFix = null;
-        selectedAircraft.viaDumasRoute = false;
-        selectedAircraft.holdFix = null;
-        selectedAircraft.holdPhase = null;
+
+        const newHeading = parseInt(hdg) % 360;
+
+        // The heading box is always pre-filled with the aircraft's
+        // current target heading when it's selected, so without this
+        // check, clicking APPLY to change just level/speed would
+        // silently cancel any active hold or DCT clearance every time.
+        // Only treat it as a genuine new heading instruction if the
+        // value actually changed.
+        if(newHeading !== selectedAircraft.targetHeading){
+
+            selectedAircraft.targetHeading = newHeading;
+            selectedAircraft.directToFix = null;
+            selectedAircraft.viaDumasRoute = false;
+            selectedAircraft.holdFix = null;
+            selectedAircraft.holdPhase = null;
+
+        }
+
     }
 
     if(lvl !== "")
@@ -574,6 +588,22 @@ if(ac.heading !== ac.targetHeading){
                         ac.turnDirection = holdCfg.turn;
                         ac.targetHeading = (holdCfg.inboundTrack + 180) % 360;
                         ac.holdOutboundTimer = 0;
+
+                    }
+                    else{
+
+                        // Home continuously on the fix rather than flying a
+                        // fixed heading - a fixed heading only closes the
+                        // loop if the outbound turn happened to line up
+                        // perfectly, otherwise the aircraft just flies past
+                        // the fix and never re-triggers another lap.
+                        let bearingToHoldFix =
+                        (Math.atan2(hdy, hdx) * 180 / Math.PI) + 90;
+
+                        bearingToHoldFix = (bearingToHoldFix + 360) % 360;
+
+                        ac.targetHeading = Math.round(bearingToHoldFix) % 360;
+                        ac.turnDirection = "SHORTEST";
 
                     }
 
