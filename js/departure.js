@@ -364,8 +364,12 @@ if(ac.heading !== ac.targetHeading){
                 else if(ac.holdPhase === "OUTBOUND"){
 
                     // Only start timing once established on the
-                    // outbound heading (not still mid-turn)
-                    if(ac.heading === ac.targetHeading){
+                    // outbound heading (not still mid-turn) - use
+                    // a small tolerance rather than exact equality
+                    let hDiff = Math.abs(ac.heading - ac.targetHeading);
+                    if(hDiff > 180) hDiff = 360 - hDiff;
+
+                    if(hDiff < 1){
 
                         ac.holdOutboundTimer = (ac.holdOutboundTimer || 0) + 1;
 
