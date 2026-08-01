@@ -971,6 +971,105 @@ function drawVAD99(){
 }
 
 // ======================================
+// VAR-115
+// Arc at 40NM between R025 and R050 from
+// CCB, then a red line from each end of
+// the arc splaying outward (020 from the
+// R025 end, 060 from the R050 end), each
+// extended until it reaches 60NM from CCB.
+// ======================================
+
+const VAR115_R1 = 25;
+const VAR115_R2 = 50;
+const VAR115_ARC_NM = 40;
+const VAR115_LINE1_BEARING = 20;
+const VAR115_LINE2_BEARING = 60;
+const VAR115_OUTER_NM = 60;
+
+// Length (NM) along a ray - starting at bearing/distance from CCB,
+// heading along rayBearing - needed to reach a given range from CCB
+function rayReachRangeNM(originBearing, originDistNM, rayBearing, targetRangeNM){
+
+    const originAngle = (originBearing - 90) * Math.PI / 180;
+    const ox = Math.cos(originAngle) * originDistNM;
+    const oy = Math.sin(originAngle) * originDistNM;
+
+    const dirAngle = (rayBearing - 90) * Math.PI / 180;
+    const dx = Math.cos(dirAngle);
+    const dy = Math.sin(dirAngle);
+
+    const b = 2 * (ox*dx + oy*dy);
+    const c = ox*ox + oy*oy - targetRangeNM*targetRangeNM;
+
+    const disc = b*b - 4*c;
+
+    if(disc < 0) return null;
+
+    const sqrtDisc = Math.sqrt(disc);
+    const t = Math.max((-b + sqrtDisc) / 2, (-b - sqrtDisc) / 2);
+
+    return t >= 0 ? t : null;
+
+}
+
+function drawVAR115(){
+
+    ctx.save();
+    ctx.strokeStyle = "#FF0000";
+    ctx.lineWidth = 2;
+
+    // Arc at 40NM from R025 to R050
+    const radiusPx = VAR115_ARC_NM * PIXELS_PER_NM;
+    const startAngle = (VAR115_R1 - 90) * Math.PI / 180;
+    const endAngle = (VAR115_R2 - 90) * Math.PI / 180;
+
+    ctx.beginPath();
+    ctx.arc(CCB.x, CCB.y, radiusPx, startAngle, endAngle, false);
+    ctx.stroke();
+
+    // Line from the R025 end of the arc, along bearing 020,
+    // out to 60NM from CCB
+    const p1 = bearingToXY(VAR115_R1, VAR115_ARC_NM);
+    const t1 = rayReachRangeNM(VAR115_R1, VAR115_ARC_NM, VAR115_LINE1_BEARING, VAR115_OUTER_NM);
+
+    if(t1 !== null){
+
+        const e1 = pointFromXY(p1, VAR115_LINE1_BEARING, t1);
+
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(e1.x, e1.y);
+        ctx.stroke();
+
+    }
+
+    // Line from the R050 end of the arc, along bearing 060,
+    // out to 60NM from CCB
+    const p2 = bearingToXY(VAR115_R2, VAR115_ARC_NM);
+    const t2 = rayReachRangeNM(VAR115_R2, VAR115_ARC_NM, VAR115_LINE2_BEARING, VAR115_OUTER_NM);
+
+    if(t2 !== null){
+
+        const e2 = pointFromXY(p2, VAR115_LINE2_BEARING, t2);
+
+        ctx.beginPath();
+        ctx.moveTo(p2.x, p2.y);
+        ctx.lineTo(e2.x, e2.y);
+        ctx.stroke();
+
+    }
+
+    ctx.fillStyle = "#FF0000";
+    ctx.font = "13px Consolas";
+    ctx.textAlign = "center";
+    ctx.fillText("VAR-115", p1.x + 10, p1.y - 6);
+    ctx.textAlign = "left";
+
+    ctx.restore();
+
+}
+
+// ======================================
 // Range / Bearing Line (RBL)
 // Works between: aircraft-aircraft,
 // aircraft-point, or point-point
@@ -1610,6 +1709,7 @@ function drawRadar(){
     drawExtraRoutes();
     drawNDBRoutes();
     drawVAD99();
+    drawVAR115();
     drawRunway();
     drawTrafficCircuit();
     drawCentreline();
