@@ -1,0 +1,497 @@
+/* ==========================================
+   ATC RADAR SIMULATOR
+   style.css
+========================================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+
+    background:#0b0b0b;
+    font-family:Consolas,Arial,sans-serif;
+    color:#00ff66;
+    overflow:hidden;
+
+}
+
+/* ===========================
+   Main Layout
+=========================== */
+
+#container{
+
+    display:flex;
+    width:100vw;
+    height:100vh;
+
+}
+
+/* ===========================
+   Radar
+=========================== */
+
+#radarContainer{
+
+    flex:1;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#000000;
+    position:relative;
+
+}
+
+#radar{
+
+    background:#000000;
+    border:2px solid #333333;
+
+    max-width:100%;
+    max-height:100%;
+    height:auto;
+    display:block;
+
+}
+
+/* ===========================
+   Clock
+=========================== */
+
+#clock{
+
+    text-align:center;
+
+    color:#00ffff;
+    font-size:22px;
+    font-weight:bold;
+
+    margin-bottom:12px;
+    padding-bottom:12px;
+
+    border-bottom:1px solid #004400;
+
+}
+
+/* ===========================
+   Right Panel
+=========================== */
+
+#controlPanel{
+
+    width:300px;
+    background:#181818;
+    border-left:2px solid #008844;
+
+    padding:18px;
+
+    overflow-y:auto;
+
+}
+
+/* ===========================
+   Titles
+=========================== */
+
+h2{
+
+    color:#00ffff;
+    text-align:center;
+    margin-bottom:15px;
+
+}
+
+h3{
+
+    color:#00ffff;
+    margin-bottom:10px;
+
+}
+
+/* ===========================
+   Labels
+=========================== */
+
+label{
+
+    display:block;
+    margin-top:10px;
+    margin-bottom:5px;
+
+}
+
+/* ===========================
+   Inputs
+=========================== */
+
+input,
+select{
+
+    width:100%;
+    height:34px;
+
+    background:#000;
+    color:#00ff66;
+
+    border:1px solid #008844;
+
+    padding-left:8px;
+
+    font-family:Consolas;
+    font-size:15px;
+
+}
+
+/* ===========================
+   Radio Buttons
+=========================== */
+
+.radioRow{
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    margin-top:10px;
+    margin-bottom:12px;
+
+}
+
+.radioRow label{
+
+    display:flex;
+    align-items:center;
+
+    gap:5px;
+
+    margin:0;
+
+}
+
+/* ===========================
+   Button Rows
+=========================== */
+
+.buttonRow{
+
+    display:flex;
+    gap:10px;
+    margin-top:10px;
+
+}
+
+/* ===========================
+   Buttons
+=========================== */
+
+button{
+
+    flex:1;
+
+    height:38px;
+
+    background:#002200;
+
+    color:#00ff66;
+
+    border:1px solid #00aa44;
+
+    cursor:pointer;
+
+    font-family:Consolas;
+    font-size:15px;
+    font-weight:bold;
+
+    transition:0.2s;
+
+}
+
+button:hover{
+
+    background:#005500;
+
+}
+
+button:active{
+
+    background:#007700;
+
+}
+
+/* ===========================
+   Departure Button
+=========================== */
+
+#createDeparture{
+
+    width:100%;
+    margin-top:12px;
+
+}
+
+/* ===========================
+   Horizontal Line
+=========================== */
+
+hr{
+
+    border:1px solid #004400;
+    margin:20px 0;
+
+}
+
+/* ===========================
+   Status
+=========================== */
+
+p{
+
+    margin-top:8px;
+    font-size:15px;
+
+}
+
+/* ===========================
+   Scroll Bar
+=========================== */
+
+::-webkit-scrollbar{
+
+    width:8px;
+
+}
+
+::-webkit-scrollbar-track{
+
+    background:#111;
+
+}
+
+::-webkit-scrollbar-thumb{
+
+    background:#00aa44;
+
+}
+
+/* ===========================
+   Focus
+=========================== */
+
+input:focus,
+select:focus{
+
+    outline:none;
+
+    border:1px solid #00ffff;
+
+}
+
+/* ===========================
+   Responsive
+=========================== */
+
+@media(max-width:1200px){
+
+#controlPanel{
+
+    width:260px;
+
+}
+
+}
+
+/* Mobile: stack radar above panel, full width, page scrolls */
+@media(max-width:800px){
+
+body{
+
+    overflow-y:auto;
+    overflow-x:hidden;
+
+}
+
+#container{
+
+    flex-direction:column;
+    width:100%;
+    height:auto;
+    min-height:100vh;
+
+}
+
+#radarContainer{
+
+    width:100%;
+    flex:none;
+
+}
+
+#radar{
+
+    width:100%;
+    max-width:100vw;
+
+}
+
+#controlPanel{
+
+    width:100%;
+    border-left:none;
+    border-top:2px solid #008844;
+    overflow-y:visible;
+
+}
+
+}
+
+/* ===========================
+   Setup Screen
+=========================== */
+
+#setupScreen{
+
+    width:100vw;
+    height:100vh;
+    background:#0b0b0b;
+
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+
+    padding:30px 15px;
+    overflow-y:auto;
+    box-sizing:border-box;
+
+}
+
+#setupBox{
+
+    width:100%;
+    max-width:900px;
+
+    background:#181818;
+    border:2px solid #008844;
+    border-radius:6px;
+
+    padding:20px;
+
+}
+
+#setupBox h2{
+
+    color:#00ffff;
+    text-align:center;
+    margin-bottom:15px;
+
+}
+
+#setupBox h3{
+
+    color:#00ffff;
+    margin:15px 0 10px;
+
+}
+
+#setupBox label{
+
+    display:block;
+    margin-bottom:6px;
+    color:#00ff66;
+
+}
+
+#setupBox input[type="text"],
+#setupBox input[type="number"]{
+
+    width:100%;
+    height:32px;
+    background:#000;
+    color:#00ff66;
+    border:1px solid #008844;
+    padding-left:6px;
+    font-family:Consolas;
+    font-size:13px;
+
+}
+
+.acRow{
+
+    display:grid;
+    grid-template-columns: 1.3fr 1fr 1fr 0.8fr 0.8fr 0.8fr 1fr 0.8fr 0.5fr;
+    gap:6px;
+    margin-bottom:8px;
+    align-items:center;
+
+}
+
+.acRowHeader span{
+
+    color:#00ffff;
+    font-size:12px;
+    text-align:center;
+
+}
+
+.ac-remove{
+
+    height:32px;
+    background:#440000;
+    color:#ff6666;
+    border:1px solid #aa0000;
+    cursor:pointer;
+
+}
+
+#addAircraftRow{
+
+    width:100%;
+    height:36px;
+    margin-top:8px;
+
+    background:#002200;
+    color:#00ff66;
+    border:1px solid #00aa44;
+    cursor:pointer;
+    font-family:Consolas;
+
+}
+
+#startSimulatorBtn{
+
+    width:100%;
+    height:46px;
+
+    background:#004400;
+    color:#00ff66;
+    border:1px solid #00ff66;
+    cursor:pointer;
+    font-family:Consolas;
+    font-size:18px;
+    font-weight:bold;
+
+}
+
+#startSimulatorBtn:hover{
+
+    background:#006600;
+
+}
+
+@media(max-width:700px){
+
+.acRow{
+
+    grid-template-columns: 1fr 1fr;
+
+}
+
+.acRowHeader{
+
+    display:none;
+
+}
+
+}
