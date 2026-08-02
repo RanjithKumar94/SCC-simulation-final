@@ -27,8 +27,33 @@ resumeBtn.onclick = function(){
 
 };
 let selectedAircraft = null;
+let selectedBlip = null;
 let unknownBlips = [];
 document.getElementById("rwy26Blip").onclick = function(){
+
+    // If there's already an unidentified blip out there, this
+    // click resets the scenario rather than adding another one -
+    // hide (remove) whatever's currently active and start fresh
+    // from 60NM, same as a brand new unknown contact.
+    const hadActiveBlip = unknownBlips.some(b => b.active);
+
+    if(hadActiveBlip){
+
+        unknownBlips.forEach(b => { b.active = false; });
+
+        if(selectedBlip){
+
+            selectedBlip = null;
+
+            const identifyForm = document.getElementById("identifyForm");
+            const identifyEmpty = document.getElementById("identifyEmpty");
+
+            if(identifyForm) identifyForm.style.display = "none";
+            if(identifyEmpty) identifyEmpty.style.display = "block";
+
+        }
+
+    }
 
     let start, heading;
 
@@ -55,11 +80,127 @@ document.getElementById("rwy26Blip").onclick = function(){
         heading: heading,
         speed: 550,
 
+        trail: [],
+        trailTimer: 0,
+
         active: true
 
     });
 
 };
+
+// ======================================
+// Identify Unknown Traffic (priority
+// landing request) - promotes whichever
+// blip is currently selected (see the
+// blip click-handling in radar.js) into
+// a full aircraft: callsign + level as
+// entered here, current position/heading/
+// speed carried over exactly as-is, and
+// its trail history carried over too so
+// there's no visual jump.
+// ======================================
+document.addEventListener("DOMContentLoaded", function(){
+
+    const identifyBtn = document.getElementById("identifyBtn");
+
+    if(!identifyBtn) return;
+
+    identifyBtn.onclick = function(){
+
+        if(!selectedBlip || !selectedBlip.active){
+            alert("Select an unknown blip on the radar first.");
+            return;
+        }
+
+        const callsignEl = document.getElementById("identifyCallsign");
+        const typeEl = document.getElementById("identifyType");
+        const levelEl = document.getElementById("identifyLevel");
+
+        const callsign = callsignEl ? callsignEl.value.trim() : "";
+
+        if(callsign === ""){
+            alert("Enter a callsign before identifying this traffic.");
+            return;
+        }
+
+        const type = typeEl ? typeEl.value : "A320";
+        const level = levelEl && levelEl.value !== "" ? parseInt(levelEl.value) : 100;
+
+        const newAc = {
+
+            callsign: callsign,
+            type: type,
+            route: "",
+            entryRadial: 0,
+            distance: 0,
+
+            x: selectedBlip.x,
+            y: selectedBlip.y,
+
+            labelAngle: 0,
+
+            heading: selectedBlip.heading,
+            targetHeading: selectedBlip.heading,
+            turnDirection: "SHORTEST",
+
+            level: level,
+            targetLevel: level,
+            verticalSpeed: 0,
+
+            speed: selectedBlip.speed,
+            targetSpeed: selectedBlip.speed,
+
+            ccbETA: "",
+            squawk: "",   // identified by voice, not yet assigned a code
+
+            priorityLanding: true,   // requested priority landing as unknown traffic
+
+            // Carry the blip's own track history over so the
+            // trail doesn't reset/jump the moment it's identified
+            trail: selectedBlip.trail ? selectedBlip.trail.slice() : [],
+            trailTimer: 0,
+
+            arrivalPhase: false,
+            removeTimer: 0,
+            landed: false,
+            active: true,
+            spawned: true
+
+        };
+
+        aircraft.push(newAc);
+
+        // Deactivate the now-identified blip (kept in the array,
+        // same as blips that fly out of range - keeps its array
+        // index stable for the report's proximity tracking)
+        selectedBlip.active = false;
+        selectedBlip = null;
+
+        // Select the newly-identified aircraft so the controller
+        // can carry straight on giving it instructions
+        selectedAircraft = newAc;
+
+        document.getElementById("callsign").value = newAc.callsign;
+        document.getElementById("heading").value = newAc.targetHeading;
+        document.getElementById("level").value = newAc.targetLevel;
+
+        const speedEl = document.getElementById("speedInput");
+        if(speedEl) speedEl.value = newAc.targetSpeed;
+
+        // Reset + hide the identify form
+        if(callsignEl) callsignEl.value = "";
+        if(levelEl) levelEl.value = "";
+
+        const identifyForm = document.getElementById("identifyForm");
+        const identifyEmpty = document.getElementById("identifyEmpty");
+
+        if(identifyForm) identifyForm.style.display = "none";
+        if(identifyEmpty) identifyEmpty.style.display = "block";
+
+    };
+
+});
 // Simulation Time
 let simHour = 5;
 let simMinute = 0;
@@ -311,6 +452,26 @@ function moveUnknownBlips(){
     unknownBlips.forEach(blip => {
 
         if(!blip.active) return;
+
+        // Trail points, same cadence as aircraft (every 4 sec,
+        // keep last 4) - lets the controller see the raw track
+        // history before it's ever identified.
+        if(!blip.trail) blip.trail = [];
+        if(blip.trailTimer === undefined) blip.trailTimer = 0;
+
+        blip.trailTimer++;
+
+        if(blip.trailTimer >= 8){
+
+            blip.trail.push({x:blip.x, y:blip.y});
+
+            if(blip.trail.length > 4){
+                blip.trail.shift();
+            }
+
+            blip.trailTimer = 0;
+
+        }
 
         const movement = blip.speed / 3600;
 
