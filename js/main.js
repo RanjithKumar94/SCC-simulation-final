@@ -102,6 +102,19 @@ document.getElementById("rwy26Blip").onclick = function(){
 // ======================================
 document.addEventListener("DOMContentLoaded", function(){
 
+    // Callsigns are always uppercase - force it live as typed.
+    const identifyCallsignInput = document.getElementById("identifyCallsign");
+
+    if(identifyCallsignInput){
+
+        identifyCallsignInput.oninput = function(){
+            const pos = this.selectionStart;
+            this.value = this.value.toUpperCase();
+            this.setSelectionRange(pos, pos);
+        };
+
+    }
+
     const identifyBtn = document.getElementById("identifyBtn");
 
     if(!identifyBtn) return;
@@ -117,7 +130,7 @@ document.addEventListener("DOMContentLoaded", function(){
         const typeEl = document.getElementById("identifyType");
         const levelEl = document.getElementById("identifyLevel");
 
-        const callsign = callsignEl ? callsignEl.value.trim() : "";
+        const callsign = callsignEl ? callsignEl.value.trim().toUpperCase() : "";
 
         if(callsign === ""){
             alert("Enter a callsign before identifying this traffic.");
