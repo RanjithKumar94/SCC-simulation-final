@@ -22,6 +22,19 @@ window.onload = function(){
 
     };
 
+    // Callsigns are always uppercase - force it live as typed.
+    const depCallsignInput = document.getElementById("depcallsign");
+
+    if(depCallsignInput){
+
+        depCallsignInput.oninput = function(){
+            const pos = this.selectionStart;
+            this.value = this.value.toUpperCase();
+            this.setSelectionRange(pos, pos);
+        };
+
+    }
+
 };
 // ======================================
 // Create Departure
@@ -30,7 +43,7 @@ window.onload = function(){
 function createDeparture(runway){
 
     const depCallsign =
-    document.getElementById("depcallsign").value.trim();
+    document.getElementById("depcallsign").value.trim().toUpperCase();
 
 
     const depLevel =
