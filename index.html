@@ -276,6 +276,38 @@
 
         <hr>
 
+        <h3>Unknown Traffic</h3>
+
+        <p id="identifyEmpty" style="font-size:12px;color:#777;">
+            Select an unknown blip on the radar to identify it.
+        </p>
+
+        <div id="identifyForm" style="display:none;">
+
+            <label>Callsign</label>
+            <input id="identifyCallsign" type="text">
+
+            <label>Type</label>
+
+            <select id="identifyType">
+                <option value="A320">A320</option>
+                <option value="B738">B738</option>
+                <option value="B747">B747</option>
+                <option value="ATR72">ATR72</option>
+                <option value="DO228">DO228</option>
+            </select>
+
+            <label>Reported Level (FL)</label>
+            <input id="identifyLevel" type="number">
+
+            <button id="identifyBtn" style="margin-top:10px;width:100%;">
+                IDENTIFY - PRIORITY LANDING
+            </button>
+
+        </div>
+
+        <hr>
+
         <h3>Approach</h3>
 
         <label>Localiser Intercept Heading</label>
