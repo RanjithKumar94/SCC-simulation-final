@@ -1642,38 +1642,22 @@ function drawAircraft(){
 
         const hasSquawk = ac.squawk !== undefined && ac.squawk !== null && ac.squawk !== "";
 
-        if(hasSquawk){
-
-            // =====================================
-            // Row 1: squawk code (A + code)
-            // =====================================
-
-            ctx.fillText(
-                "A" + ac.squawk,
-                labelX,
-                ly - 25
-            );
-
-        }
-
-
         // =====================================
-        // Callsign - always shown regardless of
-        // squawk state
+        // Row 1: callsign, type - always shown
         // =====================================
 
         ctx.fillText(
-            ac.callsign,
+            ac.callsign + "   " + (ac.type || ""),
             labelX,
-            ly - 10
+            ly - 15
         );
 
 
         if(hasSquawk){
 
             // =====================================
-            // Row: actual level, target level,
-            // climb/descend rate (hundreds of ft/min)
+            // Row 2: actual level (+ climb/descend
+            // trend arrow), target level
             // =====================================
 
             const currentFL =
@@ -1682,50 +1666,45 @@ function drawAircraft(){
             const assignedFL =
             Math.round(ac.targetLevel);
 
-            let rateText = "";
+            let trendArrow = "";
 
             if(ac.verticalSpeed > 0){
-
-                rateText =
-                " ↑" + Math.round(Math.abs(ac.verticalSpeed)/100);
-
+                trendArrow = "↑";
             }
             else if(ac.verticalSpeed < 0){
-
-                rateText =
-                " ↓" + Math.round(Math.abs(ac.verticalSpeed)/100);
-
+                trendArrow = "↓";
             }
 
             const levelText =
-            currentFL + " " + assignedFL + rateText;
+            currentFL + trendArrow + "   " + assignedFL;
 
             ctx.fillText(
                 levelText,
                 labelX,
-                ly + 5
+                ly
             );
 
 
 
             // =====================================
-            // Row: speed
+            // Row 3: squawk, speed (plain - no "A"
+            // prefix, no "KT" suffix)
             // =====================================
 
-            const speedText =
-            Math.round(ac.speed) + "KT";
+            const squawkSpeedText =
+            ac.squawk + "   " + Math.round(ac.speed);
 
             ctx.fillText(
-                speedText,
+                squawkSpeedText,
                 labelX,
-                ly + 20
+                ly + 15
             );
 
         }
         else{
 
             // Primary radar only - no transponder data.
-            // Callsign already shown above; the only other
+            // Callsign/type already shown above; the only other
             // thing shown is the controller's own memory of
             // the assigned level, nothing else (no actual
             // altitude, no speed).
@@ -1733,7 +1712,7 @@ function drawAircraft(){
             ctx.fillText(
                 String(Math.round(ac.targetLevel)),
                 labelX,
-                ly + 5
+                ly
             );
 
         }
