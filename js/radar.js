@@ -238,11 +238,17 @@ const HOLD_FIXES = {
     // NT hold: inbound track 090 means the aircraft flies inbound
     // TO the fix heading 090 (i.e. approaching from the west, so
     // on the inbound leg it sits on a bearing of 270 FROM NT).
-    // Outbound leg is the reciprocal, heading 270. turn:"RIGHT"
-    // sweeps the entry/reversal turns through the north (270 ->
-    // 360/0 -> 090) instead of through the south, putting the
-    // pattern on the north side of the inbound/outbound track.
-    "NT":  {inboundTrack:90, turn:"RIGHT", mha:30},
+    // Outbound leg is the reciprocal, heading 270.
+    //
+    // The turn that actually shapes the pattern is the ENTRY turn
+    // (inbound 090 -> outbound 270), since it's flown gradually
+    // over the whole outbound leg. The return turn barely matters
+    // visually - once inbound, the sim homes straight on the fix.
+    // turn:"LEFT" means that entry turn sweeps 090 -> 000 -> 270,
+    // i.e. through the NORTH, putting the pattern on the north
+    // side of the inbound/outbound track. ("RIGHT" would sweep
+    // 090 -> 180 -> 270, through the south - the wrong side.)
+    "NT":  {inboundTrack:90, turn:"LEFT", mha:30},
 
     "PJ":  {inboundTrack:10, turn:"LEFT",  mha:65},
     "BR":  {inboundTrack:72, turn:"RIGHT", mha:65}
@@ -1306,7 +1312,27 @@ function drawAircraft(){
 
             if(!blip.active) return;
 
-            ctx.fillStyle = "#FF0000";
+            const blipIsSelected =
+            (typeof selectedBlip !== "undefined") && selectedBlip === blip;
+
+            // History trail (same cadence/length as aircraft)
+            if(blip.trail && blip.trail.length){
+
+                blip.trail.forEach(pt=>{
+
+                    const dx = pt.x - blip.x;
+                    const dy = pt.y - blip.y;
+
+                    if(Math.sqrt(dx*dx + dy*dy) < 5) return;
+
+                    ctx.fillStyle = blipIsSelected ? AIRCRAFT_SELECTED_COLOR : "#993333";
+                    ctx.fillRect(pt.x - 1.5, pt.y - 1.5, 3, 3);
+
+                });
+
+            }
+
+            ctx.fillStyle = blipIsSelected ? AIRCRAFT_SELECTED_COLOR : "#FF0000";
 
             ctx.beginPath();
 
@@ -1319,6 +1345,17 @@ function drawAircraft(){
             );
 
             ctx.fill();
+
+            if(blipIsSelected){
+
+                ctx.strokeStyle = AIRCRAFT_SELECTED_COLOR;
+                ctx.lineWidth = 1.5;
+
+                ctx.beginPath();
+                ctx.arc(blip.x, blip.y, 10, 0, Math.PI * 2);
+                ctx.stroke();
+
+            }
 
         });
 
@@ -2074,6 +2111,46 @@ canvas.addEventListener("click", function(e){
 
 const world = screenToWorld(mx, my);
 
+// =====================================
+// Unknown blip selection - lets the
+// controller identify a primary-only
+// contact (e.g. one requesting priority
+// landing): callsign + level entered via
+// the Identify Unknown Traffic panel.
+// =====================================
+
+if(typeof unknownBlips !== "undefined"){
+
+    const hitBlip = unknownBlips.find(blip=>{
+
+        if(!blip.active) return false;
+
+        const dx = world.x - blip.x;
+        const dy = world.y - blip.y;
+
+        return Math.sqrt(dx*dx + dy*dy) <= 15 / getZoomFactor();
+
+    });
+
+    if(hitBlip){
+
+        selectedBlip = hitBlip;
+        selectedAircraft = null;
+
+        const identifyForm = document.getElementById("identifyForm");
+        const identifyEmpty = document.getElementById("identifyEmpty");
+
+        if(identifyForm) identifyForm.style.display = "block";
+        if(identifyEmpty) identifyEmpty.style.display = "none";
+
+        console.log("Unknown blip selected at", Math.round(hitBlip.x), Math.round(hitBlip.y));
+
+        return;
+
+    }
+
+}
+
 [...aircraft, ...(typeof departures !== "undefined" ? departures : [])].forEach(ac=>{
         if(!ac.active) return;
 
@@ -2110,6 +2187,16 @@ console.log(
 );
             // Select aircraft
             selectedAircraft = ac;
+
+            // Deselect any unknown blip - the two selections are
+            // mutually exclusive
+            selectedBlip = null;
+
+            const identifyFormEl = document.getElementById("identifyForm");
+            const identifyEmptyEl = document.getElementById("identifyEmpty");
+
+            if(identifyFormEl) identifyFormEl.style.display = "none";
+            if(identifyEmptyEl) identifyEmptyEl.style.display = "block";
 
             // Acknowledge any emergency squawk (7500/7600/7700) -
             // stops the label blinking red until it changes again
