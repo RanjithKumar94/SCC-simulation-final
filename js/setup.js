@@ -44,6 +44,16 @@ function addAircraftRow(prefill){
 
     document.getElementById("aircraftRows").appendChild(row);
 
+    // Callsigns are always uppercase - force it live as they type,
+    // not just when the sim actually starts.
+    const callsignInput = row.querySelector(".ac-callsign");
+
+    callsignInput.oninput = function(){
+        const pos = this.selectionStart;
+        this.value = this.value.toUpperCase();
+        this.setSelectionRange(pos, pos);
+    };
+
     row.querySelector(".ac-remove").onclick = function(){
         row.remove();
     };
@@ -76,7 +86,7 @@ function startSimulatorFromSetup(){
 
     rows.forEach(row=>{
 
-        const callsign = row.querySelector(".ac-callsign").value.trim();
+        const callsign = row.querySelector(".ac-callsign").value.trim().toUpperCase();
 
         if(callsign === "") return;   // skip empty rows
 
