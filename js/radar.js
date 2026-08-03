@@ -39,6 +39,7 @@ const AIRCRAFT_COLOR = "#00FF00";
 const AIRCRAFT_SELECTED_COLOR = "#FFFF00";
 const EMERGENCY_SQUAWKS = ["7500", "7600", "7700"];
 const EMERGENCY_BLINK_COLOR = "#FF0000";
+const DUP_SSR_COLOR = "#FF66CC";
 
 // ======================================
 // Emergency squawk alert tone - a short
@@ -1399,6 +1400,41 @@ function drawAircraft(){
 
 
     // =====================================
+    // Duplicate SSR (squawk) detection -
+    // tag every aircraft sharing a non-blank
+    // squawk with at least one other, so the
+    // label loop below can blink pink and
+    // show a "DUP SSR" row on all of them.
+    // 1200 is excluded - it's the default
+    // squawk for a new departure and is a
+    // conventional shared/VFR-style code in
+    // real life, not an actual SSR conflict.
+    // =====================================
+
+    const DUP_SSR_EXCLUDED_CODES = ["1200"];
+
+    const squawkCounts = {};
+
+    activeList.forEach(ac=>{
+
+        if(ac.squawk && !DUP_SSR_EXCLUDED_CODES.includes(ac.squawk)){
+            squawkCounts[ac.squawk] = (squawkCounts[ac.squawk] || 0) + 1;
+        }
+
+    });
+
+    activeList.forEach(ac=>{
+
+        ac.dupSSR = !!(
+            ac.squawk &&
+            !DUP_SSR_EXCLUDED_CODES.includes(ac.squawk) &&
+            squawkCounts[ac.squawk] > 1
+        );
+
+    });
+
+
+    // =====================================
     // PASS 1: compute label anchor points,
     // then repel overlapping labels apart
     // =====================================
@@ -1512,8 +1548,8 @@ function drawAircraft(){
         ? AIRCRAFT_SELECTED_COLOR
         : AIRCRAFT_COLOR;
 
-        const lx = bx + ac.labelOffset.x;
-        const ly = by + ac.labelOffset.y;
+        const lx = bx + ac.labelOffset.x + (ac.manualDragOffset ? ac.manualDragOffset.x : 0);
+        const ly = by + ac.labelOffset.y + (ac.manualDragOffset ? ac.manualDragOffset.y : 0);
 
 
         // =====================================
@@ -1578,20 +1614,34 @@ function drawAircraft(){
         // Emergency squawk (7500/7600/7700) -
         // blink the leader line AND the whole
         // label red until the controller
-        // clicks/acknowledges it. Computed here
-        // (before the leader line is drawn) so
-        // both use the same on/off flicker.
-        // Applies to arrivals AND departures -
-        // both live in the same activeList.
+        // clicks/acknowledges it. Duplicate SSR
+        // (two aircraft on the same squawk)
+        // blinks pink instead. If both apply,
+        // emergency (red) takes priority for
+        // color, but the DUP SSR row still shows.
+        // Computed here (before the leader line
+        // is drawn) so everything flickers in
+        // sync. Applies to arrivals AND
+        // departures - both live in activeList.
         // =====================================
 
         const isEmergencySquawk =
         ac.squawk && EMERGENCY_SQUAWKS.includes(ac.squawk);
 
+        const isDupSSR = !!ac.dupSSR;
+
         const blinkOn = Math.floor(Date.now() / 400) % 2 === 0;
 
         const emergencyBlinking =
         isEmergencySquawk && !ac.emergencyAck && blinkOn;
+
+        const dupBlinking = isDupSSR && blinkOn;
+
+        const anyBlinking = emergencyBlinking || dupBlinking;
+
+        const blinkColor = emergencyBlinking
+        ? EMERGENCY_BLINK_COLOR
+        : DUP_SSR_COLOR;
 
 
 
@@ -1600,8 +1650,8 @@ function drawAircraft(){
         // even after it's been repelled)
         // =====================================
 
-        ctx.strokeStyle = emergencyBlinking ? EMERGENCY_BLINK_COLOR : acColor;
-        ctx.lineWidth = emergencyBlinking ? 2 : 1;
+        ctx.strokeStyle = anyBlinking ? blinkColor : acColor;
+        ctx.lineWidth = anyBlinking ? 2 : 1;
 
 
         ctx.beginPath();
@@ -1639,11 +1689,11 @@ function drawAircraft(){
         }
 
 
-        // Label uses the same emergencyBlinking flag computed
+        // Label uses the same anyBlinking/blinkColor computed
         // above the leader line, so both flicker in sync.
 
-        const labelColor = emergencyBlinking
-        ? EMERGENCY_BLINK_COLOR
+        const labelColor = anyBlinking
+        ? blinkColor
         : acColor;
 
         ctx.textAlign = align;
@@ -1711,6 +1761,24 @@ function drawAircraft(){
                 labelX,
                 ly + 15
             );
+
+
+
+            // =====================================
+            // Row 4: DUP SSR - only when this
+            // aircraft shares its squawk with
+            // another active one
+            // =====================================
+
+            if(isDupSSR){
+
+                ctx.fillText(
+                    "DUP SSR",
+                    labelX,
+                    ly + 30
+                );
+
+            }
 
         }
         else{
@@ -2040,6 +2108,156 @@ canvas.addEventListener("click", function(e){
 
 });
 // ======================================
+// Label Dragging (mouse) - pick up a
+// label and move it anywhere, on top of
+// the automatic anti-overlap nudging
+// (which uses ac.labelOffset - dragging
+// uses a separate ac.manualDragOffset so
+// the two never fight each other). A
+// short drag (a few px or less) is still
+// treated as a normal click (select +
+// rotate), not a drag.
+// ======================================
+
+let draggingLabelAircraft = null;
+let dragStartWorld = null;
+let dragStartOffset = null;
+let dragMoved = false;
+let suppressNextLabelClick = false;
+
+function findLabelHitAircraft(worldX, worldY){
+
+    const list = [...aircraft, ...(typeof departures !== "undefined" ? departures : [])];
+
+    for(let i=0; i<list.length; i++){
+
+        const ac = list[i];
+
+        if(!ac.active) continue;
+
+        const angle = ac.labelAngle * Math.PI / 180;
+        const leaderLength = 45;
+
+        const bx = ac.x + Math.cos(angle) * leaderLength;
+        const by = ac.y + Math.sin(angle) * leaderLength;
+
+        const offX = ac.labelOffset ? ac.labelOffset.x : 0;
+        const offY = ac.labelOffset ? ac.labelOffset.y : 0;
+        const dragX = ac.manualDragOffset ? ac.manualDragOffset.x : 0;
+        const dragY = ac.manualDragOffset ? ac.manualDragOffset.y : 0;
+
+        const lx = bx + offX + dragX;
+        const ly = by + offY + dragY;
+
+        const dirRight = Math.cos(angle) >= 0;
+        const labelX = dirRight ? lx + 8 : lx - 8;
+
+        const boxLeft  = dirRight ? labelX : labelX - 100;
+        const boxRight = dirRight ? labelX + 100 : labelX;
+
+        if(
+            worldX >= boxLeft &&
+            worldX <= boxRight &&
+            worldY >= ly - 35 &&
+            worldY <= ly + 30
+        ){
+            return ac;
+        }
+
+    }
+
+    return null;
+
+}
+
+canvas.addEventListener("mousedown", function(e){
+
+    if(typeof rblMode !== "undefined" && rblMode) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+
+    const world = screenToWorld(mx, my);
+
+    const hit = findLabelHitAircraft(world.x, world.y);
+
+    if(!hit) return;
+
+    if(!hit.manualDragOffset){
+        hit.manualDragOffset = {x:0, y:0};
+    }
+
+    draggingLabelAircraft = hit;
+    dragStartWorld = {x: world.x, y: world.y};
+    dragStartOffset = {x: hit.manualDragOffset.x, y: hit.manualDragOffset.y};
+    dragMoved = false;
+
+    e.preventDefault();
+
+});
+
+canvas.addEventListener("mousemove", function(e){
+
+    if(!draggingLabelAircraft) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+
+    const world = screenToWorld(mx, my);
+
+    const dx = world.x - dragStartWorld.x;
+    const dy = world.y - dragStartWorld.y;
+
+    if(Math.abs(dx) > 3 || Math.abs(dy) > 3){
+        dragMoved = true;
+    }
+
+    const DRAG_LIMIT = 250;
+
+    draggingLabelAircraft.manualDragOffset.x =
+    Math.max(-DRAG_LIMIT, Math.min(DRAG_LIMIT, dragStartOffset.x + dx));
+
+    draggingLabelAircraft.manualDragOffset.y =
+    Math.max(-DRAG_LIMIT, Math.min(DRAG_LIMIT, dragStartOffset.y + dy));
+
+    // Remember this device's own drag placement (only meaningful
+    // on a CONTROLLER device - a no-op on the pilot) so it isn't
+    // wiped out by the next incoming state snapshot.
+    if(typeof onLabelChanged === "function"){
+        onLabelChanged(draggingLabelAircraft);
+    }
+
+});
+
+function endLabelDrag(){
+
+    if(draggingLabelAircraft && dragMoved){
+
+        // Swallow the synthetic "click" the browser fires right
+        // after mouseup on the same spot - a real drag shouldn't
+        // also select/rotate the label the way a plain click does.
+        suppressNextLabelClick = true;
+
+    }
+
+    draggingLabelAircraft = null;
+    dragStartWorld = null;
+    dragStartOffset = null;
+
+}
+
+canvas.addEventListener("mouseup", endLabelDrag);
+canvas.addEventListener("mouseleave", endLabelDrag);
+
+// ======================================
 // Label Click Detection
 // ======================================
 // ======================================
@@ -2047,6 +2265,11 @@ canvas.addEventListener("click", function(e){
 // ======================================
 
 canvas.addEventListener("click", function(e){
+
+    if(suppressNextLabelClick){
+        suppressNextLabelClick = false;
+        return;
+    }
 
     const rect = canvas.getBoundingClientRect();
 
@@ -2160,9 +2383,11 @@ if(typeof unknownBlips !== "undefined"){
 
         const offX = ac.labelOffset ? ac.labelOffset.x : 0;
         const offY = ac.labelOffset ? ac.labelOffset.y : 0;
+        const dragX = ac.manualDragOffset ? ac.manualDragOffset.x : 0;
+        const dragY = ac.manualDragOffset ? ac.manualDragOffset.y : 0;
 
-        const lx = bx + offX;
-        const ly = by + offY;
+        const lx = bx + offX + dragX;
+        const ly = by + offY + dragY;
 
         // Match the same left/right alignment the label is drawn with
         const dirRight = Math.cos(angle) >= 0;
