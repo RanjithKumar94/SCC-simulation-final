@@ -451,6 +451,10 @@ function spawnAircraft(){
             // setup screen and rarely lands on exactly 120.
             if(Math.abs(ac.entryRadial - 120) <= 5 && vad99Active){
                 ac.directToFix = "DUMAS";
+                console.log(ac.callsign+" [VAD-99] armed DUMAS routing at spawn (entryRadial="+ac.entryRadial+")");
+            }
+            else{
+                console.log(ac.callsign+" [VAD-99] NOT armed - entryRadial="+ac.entryRadial+" (needs 115-125), vad99Active="+vad99Active);
             }
 
             console.log(ac.callsign+" entered at "+spawnDistance.toFixed(1)+" NM");
@@ -676,6 +680,8 @@ if(ac.heading !== ac.targetHeading){
                         ac.turnDirection = "SHORTEST";
                         ac.viaDumasRoute = true;
 
+                        console.log(ac.callsign+" [VAD-99] reached DUMAS - turning onto track 320, viaDumasRoute=true");
+
                     }
                     else if(fixPos.bearing !== undefined){
 
@@ -864,6 +870,21 @@ if(ac.viaDumasRoute && distFromCCB <= colabDistanceNM){
     ac.targetHeading = 268;   // inbound on R088
     ac.turnDirection = "SHORTEST";
     ac.viaDumasRoute = false;
+
+    console.log(ac.callsign+" [VAD-99] reached COLAB ("+distFromCCB.toFixed(1)+"NM from CCB) - turning inbound heading 268");
+
+}
+else if(ac.viaDumasRoute){
+
+    // Still flying the 320 leg toward COLAB - log progress every
+    // ~10s so a stall (distance not decreasing) is visible instead
+    // of silent.
+    ac._dumasLogTimer = (ac._dumasLogTimer || 0) + 1;
+
+    if(ac._dumasLogTimer >= 10){
+        ac._dumasLogTimer = 0;
+        console.log(ac.callsign+" [VAD-99] en route to COLAB - "+distFromCCB.toFixed(1)+"NM from CCB (need <="+colabDistanceNM+"), heading="+Math.round(ac.heading)+", target="+ac.targetHeading);
+    }
 
 }
 
