@@ -252,6 +252,11 @@ document.getElementById("applyBtn").onclick = function(){
         return;
     }
 
+    // Any controller action at all means this aircraft is no longer
+    // "uninstructed" - stops the auto-hold-at-CCB fallback below
+    // from kicking in for it.
+    selectedAircraft.everCleared = true;
+
     const hdg = document.getElementById("heading").value;
     const lvl = document.getElementById("level").value;
 
@@ -441,7 +446,10 @@ function spawnAircraft(){
             // so arm the DUMAS routing automatically instead of
             // waiting for the controller to press DCT-DUMAS. This
             // reuses the existing DUMAS -> 320 -> R088 logic as-is.
-            if(ac.entryRadial === 120 && vad99Active){
+            // Uses a tolerance band rather than an exact match,
+            // since the entry radial is manually typed on the
+            // setup screen and rarely lands on exactly 120.
+            if(Math.abs(ac.entryRadial - 120) <= 5 && vad99Active){
                 ac.directToFix = "DUMAS";
             }
 
@@ -836,14 +844,44 @@ const touchdownDistance = Math.sqrt(
 ) / PIXELS_PER_NM;
 
 // Published route: once via DUMAS on track 320,
-// automatically establish R088 inbound at 20NM from
-// CCB - unless the controller has since given other
-// instructions (viaDumasRoute gets cleared then).
-if(ac.viaDumasRoute && touchdownDistance <= 20){
+// automatically establish R088 inbound on reaching COLAB
+// (R088/CCB, 22 DME) - unless the controller has since given
+// other instructions (viaDumasRoute gets cleared then).
+// Uses distance from CCB itself (not the runway-specific
+// touchdown point above) since COLAB/R088 are CCB-referenced.
+const distFromCCB = Math.sqrt(
+    (ac.x - CCB.x)*(ac.x - CCB.x) +
+    (ac.y - CCB.y)*(ac.y - CCB.y)
+) / PIXELS_PER_NM;
+
+const colabFix =
+(typeof getFixByName === "function") ? getFixByName("COLAB") : null;
+
+const colabDistanceNM = colabFix ? colabFix.distance : 22;
+
+if(ac.viaDumasRoute && distFromCCB <= colabDistanceNM){
 
     ac.targetHeading = 268;   // inbound on R088
     ac.turnDirection = "SHORTEST";
     ac.viaDumasRoute = false;
+
+}
+
+// ===============================
+// Auto-hold at CCB: if the controller has never given this
+// aircraft any instruction at all (no heading, DCT, hold, or
+// approach clearance) and it reaches CCB, hold it there instead
+// of letting it fly straight through and off the radar. Any
+// controller action from that point on (heading/DCT/hold/
+// approach) takes over as normal and this never fires again.
+// ===============================
+
+if(!ac.everCleared && !ac.holdFix && distFromCCB <= 1 &&
+   typeof HOLD_FIXES !== "undefined" && HOLD_FIXES["CCB"]){
+
+    ac.holdFix = "CCB";
+    ac.holdPhase = null;
+    ac.holdOutboundTimer = 0;
 
 }
 
