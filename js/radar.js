@@ -1,5 +1,9 @@
 // ======================================
 // ATC RADAR SIMULATOR
+// radar.js
+// ======================================
+
+// ATC RADAR SIMULATOR
 // radar.js - PART 1
 // ======================================
 
@@ -8,7 +12,7 @@ const canvas = document.getElementById("radar");
 const ctx = canvas.getContext("2d");
 
 // Radar Size
-const RADAR_RADIUS = 380;
+const RADAR_RADIUS = 475;
 const MAX_RANGE = 60;
 const PIXELS_PER_NM = RADAR_RADIUS / MAX_RANGE;
 
@@ -115,7 +119,11 @@ const FIXES = [
     {name:"MANUR", bearing:270, distance:50},
     {name:"BAMUL", bearing:350, distance:50},
     {name:"MANDU", bearing:70,  distance:50},
-    {name:"DUMAS", bearing:120, distance:50}
+    {name:"DUMAS", bearing:120, distance:50},
+
+    // R088/CCB, 22 DME - the VAD-99 DUMAS route turns inbound to
+    // CCB on reaching this fix (see the viaDumasRoute join in main.js)
+    {name:"COLAB", bearing:88,  distance:22}
 
 ];
 
@@ -155,22 +163,26 @@ function drawFixes(){
         ctx.font = "13px Consolas";
         ctx.textAlign = "left";
 
-        ctx.fillText(fix.name, p.x + 8, p.y + 4);
+        // COLAB sits right in the approach funnel area - keep the
+        // marker but skip the label to avoid clutter there.
+        if(fix.name !== "COLAB"){
+            ctx.fillText(fix.name, p.x + 8, p.y + 4);
+        }
 
     });
 
 }
 
 // ======================================
-// Extra unnamed route: DUMAS to the
-// 088-R/CCB route at 20 NM from CCB
+// Extra unnamed route: DUMAS to COLAB
+// (R088/CCB, 22 DME)
 // ======================================
 
 const EXTRA_ROUTES = [
 
     {
         from:{bearing:120, distance:50},   // DUMAS
-        to:{bearing:88, distance:20}
+        to:{bearing:88, distance:22}       // COLAB
     }
 
 ];
@@ -1788,6 +1800,9 @@ function drawRadar(){
 }
 
 // ======================================
+
+
+// ======================================
 // Start Radar
 // ======================================
 
@@ -1840,6 +1855,7 @@ window.onload = function(){
         selectedAircraft.established = false;
         selectedAircraft.viaDumasRoute = false;
         selectedAircraft.goAround = false;
+        selectedAircraft.everCleared = true;
 
     }
 
@@ -1878,6 +1894,7 @@ window.onload = function(){
             selectedAircraft.viaDumasRoute = false;
             selectedAircraft.directToFix = null;
             selectedAircraft.goAround = true;
+            selectedAircraft.everCleared = true;
 
             // Go around: climb, keep current heading
             selectedAircraft.targetHeading = Math.round(selectedAircraft.heading) % 360;
@@ -1936,6 +1953,7 @@ window.onload = function(){
             selectedAircraft.viaDumasRoute = false;
             selectedAircraft.holdFix = null;
             selectedAircraft.holdPhase = null;
+            selectedAircraft.everCleared = true;
 
         };
 
@@ -1955,6 +1973,7 @@ window.onload = function(){
             selectedAircraft.holdFix = btn.getAttribute("data-fix");
             selectedAircraft.holdPhase = null;
             selectedAircraft.holdOutboundTimer = 0;
+            selectedAircraft.everCleared = true;
 
             // A hold clearance supersedes any direct-to-fix routing
             selectedAircraft.directToFix = null;
@@ -2183,6 +2202,13 @@ console.log(
 
             // Rotate label 45°
             ac.labelAngle = (ac.labelAngle + 45) % 360;
+
+            // Let netsync.js remember this device's own label
+            // rotation/position (only meaningful on a CONTROLLER
+            // device - a no-op on the pilot).
+            if(typeof onLabelChanged === "function"){
+                onLabelChanged(ac);
+            }
 
             // Fill control panel
             document.getElementById("callsign").value = ac.callsign;
